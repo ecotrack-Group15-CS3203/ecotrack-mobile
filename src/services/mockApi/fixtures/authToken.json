@@ -1,0 +1,6 @@
+{
+  "sub": "3a1b2c4d-0000-0000-0000-abc123456789",
+  "email": "citizen@example.com",
+  "roles": ["citizen"],
+  "organizationId": null
+}

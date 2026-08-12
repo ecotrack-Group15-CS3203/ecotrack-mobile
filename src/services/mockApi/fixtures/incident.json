@@ -1,0 +1,22 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "organizationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "title": "Illegal construction waste dumping",
+  "description": "Large pile of concrete rubble and debris on the eastern bank.",
+  "location": {
+    "lat": 6.8235,
+    "lng": 80.0399
+  },
+  "status": "reported",
+  "urgency": "high",
+  "reportedBy": {
+    "id": "3a1b2c4d-0000-0000-0000-abc123456789",
+    "name": "Rashmika S."
+  },
+  "mediaUrls": [
+    "https://ecotrack-incident-media.s3.ap-southeast-1.amazonaws.com/incidents/550e8400/photo-1.jpg"
+  ],
+  "verifiedBy": null,
+  "createdAt": "2026-07-31T08:15:00Z",
+  "updatedAt": "2026-07-31T08:15:00Z"
+}

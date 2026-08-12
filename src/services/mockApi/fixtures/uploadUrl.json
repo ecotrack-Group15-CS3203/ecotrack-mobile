@@ -1,0 +1,4 @@
+{
+  "uploadUrl": "https://ecotrack-incident-media.s3.amazonaws.com/incidents/uuid/photo-1.jpg?X-Amz-Signature=mock",
+  "mediaUrl": "https://ecotrack-incident-media.s3.ap-southeast-1.amazonaws.com/incidents/uuid/photo-1.jpg"
+}
