@@ -1,0 +1,16 @@
+{
+  "nav": {
+    "map": "Map",
+    "myTasks": "My Tasks",
+    "report": "Report",
+    "myEvents": "My Events",
+    "settings": "Settings"
+  },
+  "common": {
+    "loading": "Loading...",
+    "retry": "Retry"
+  },
+  "auth": {
+    "login": "Log In"
+  }
+}
