@@ -10,8 +10,10 @@ const config: ExpoConfig = {
   scheme: "ecotrack",
   ios: {
     supportsTablet: true,
+    bundleIdentifier: "com.ecotrack.mobile",
   },
   android: {
+    package: "com.ecotrack.mobile",
     adaptiveIcon: {
       backgroundColor: "#E6F4FE",
       foregroundImage: "./assets/android-icon-foreground.png",
