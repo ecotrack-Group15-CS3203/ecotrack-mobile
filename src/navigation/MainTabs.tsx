@@ -1,11 +1,13 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
-import { MapScreen } from "./placeholders/MapScreen";
-import { MyEventsScreen } from "./placeholders/MyEventsScreen";
-import { MyTasksScreen } from "./placeholders/MyTasksScreen";
+import { EventsListScreen } from "../modules/event/EventsListScreen";
+import { IncidentMapScreen } from "../modules/map/IncidentMapScreen";
+import { SettingsScreen } from "../modules/settings/SettingsScreen";
+import { MyTasksScreen } from "../modules/task/MyTasksScreen";
+import { colors, radii } from "../theme/colors";
 import { ReportPlaceholderScreen } from "./placeholders/ReportPlaceholderScreen";
-import { SettingsScreen } from "./placeholders/SettingsScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -13,13 +15,39 @@ export function MainTabs() {
   const { t } = useTranslation();
 
   return (
-    <Tab.Navigator>
-      <Tab.Screen name="Map" component={MapScreen} options={{ title: t("nav.map") }} />
-      <Tab.Screen name="MyTasks" component={MyTasksScreen} options={{ title: t("nav.myTasks") }} />
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarActiveBackgroundColor: colors.primaryLight,
+        tabBarItemStyle: { borderRadius: radii.sm, marginHorizontal: 6, marginVertical: 4 },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
+      }}
+    >
+      <Tab.Screen
+        name="Map"
+        component={IncidentMapScreen}
+        options={{
+          title: t("nav.map"),
+          tabBarIcon: ({ color, size }) => <Ionicons name="location-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="MyTasks"
+        component={MyTasksScreen}
+        options={{
+          title: t("nav.myTasks"),
+          tabBarIcon: ({ color, size }) => <Ionicons name="checkbox-outline" size={size} color={color} />,
+        }}
+      />
       <Tab.Screen
         name="Report"
         component={ReportPlaceholderScreen}
-        options={{ title: t("nav.report") }}
+        options={{
+          title: t("nav.report"),
+          tabBarIcon: ({ color, size }) => <Ionicons name="add-circle-outline" size={size} color={color} />,
+        }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             // Report is a FAB, not a real tab destination: it pushes a modal
@@ -29,8 +57,22 @@ export function MainTabs() {
           },
         })}
       />
-      <Tab.Screen name="MyEvents" component={MyEventsScreen} options={{ title: t("nav.myEvents") }} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: t("nav.settings") }} />
+      <Tab.Screen
+        name="MyEvents"
+        component={EventsListScreen}
+        options={{
+          title: t("nav.myEvents"),
+          tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          title: t("nav.settings"),
+          tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
+        }}
+      />
     </Tab.Navigator>
   );
 }

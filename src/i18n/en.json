@@ -1,10 +1,10 @@
 {
   "nav": {
     "map": "Map",
-    "myTasks": "My Tasks",
+    "myTasks": "Tasks",
     "report": "Report",
-    "myEvents": "My Events",
-    "settings": "Settings"
+    "myEvents": "Events",
+    "settings": "Profile"
   },
   "common": {
     "loading": "Loading...",

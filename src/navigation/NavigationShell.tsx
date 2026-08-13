@@ -5,9 +5,9 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { useAuthStore } from "../modules/auth/authStore";
+import { ReportWizardScreen } from "../modules/incident/ReportWizard/ReportWizardScreen";
 import { AuthStack } from "./AuthStack";
 import { MainTabs } from "./MainTabs";
-import { ReportPlaceholderScreen } from "./placeholders/ReportPlaceholderScreen";
 
 const RootStack = createNativeStackNavigator();
 
@@ -36,8 +36,8 @@ export function NavigationShell() {
             <RootStack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
             <RootStack.Screen
               name="ReportModal"
-              component={ReportPlaceholderScreen}
-              options={{ presentation: "modal", title: "Report Incident" }}
+              component={ReportWizardScreen}
+              options={{ presentation: "modal", headerShown: false }}
             />
           </RootStack.Navigator>
         ) : (
