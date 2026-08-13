@@ -1,18 +1,33 @@
+import { useEffect } from "react";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { useAuthStore } from "../modules/auth/authStore";
 import { AuthStack } from "./AuthStack";
 import { MainTabs } from "./MainTabs";
 import { ReportPlaceholderScreen } from "./placeholders/ReportPlaceholderScreen";
 
 const RootStack = createNativeStackNavigator();
 
-// Hardcoded until authStore exists (Phase 1 auth module) — this just proves
-// the AuthStack/MainTabs switch works before real auth state is wired in.
-const isAuthenticated = false;
-
 export function NavigationShell() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isHydrating = useAuthStore((state) => state.isHydrating);
+  const hydrate = useAuthStore((state) => state.hydrate);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  if (isHydrating) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <NavigationContainer>
@@ -32,3 +47,7 @@ export function NavigationShell() {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  loading: { flex: 1, alignItems: "center", justifyContent: "center" },
+});
