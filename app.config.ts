@@ -28,6 +28,7 @@ const config: ExpoConfig = {
   plugins: [
     "expo-secure-store",
     "expo-web-browser",
+    "@rnmapbox/maps",
     [
       "expo-location",
       {
