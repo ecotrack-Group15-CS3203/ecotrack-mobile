@@ -33,6 +33,10 @@ export const tokenStorage = {
     return SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
   },
 
+  getIdToken(): Promise<string | null> {
+    return SecureStore.getItemAsync(ID_TOKEN_KEY);
+  },
+
   async clear(): Promise<void> {
     await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
     await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);

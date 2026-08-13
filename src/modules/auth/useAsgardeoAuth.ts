@@ -4,6 +4,7 @@ import * as WebBrowser from "expo-web-browser";
 
 import { env } from "../../config/env";
 import { useAuthStore } from "./authStore";
+import { tokenStorage } from "./tokenStorage";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -12,6 +13,7 @@ const redirectUri = AuthSession.makeRedirectUri({ scheme: "ecotrack", path: "red
 export function useAsgardeoAuth() {
   const discovery = AuthSession.useAutoDiscovery(env.ASGARDEO_ISSUER);
   const signIn = useAuthStore((state) => state.signIn);
+  const clearLocalSession = useAuthStore((state) => state.signOut);
   const [error, setError] = useState<string | null>(null);
   const [isExchanging, setIsExchanging] = useState(false);
 
@@ -58,8 +60,31 @@ export function useAsgardeoAuth() {
       .finally(() => setIsExchanging(false));
   }, [response, discovery]);
 
+  async function signOut() {
+    const idToken = await tokenStorage.getIdToken();
+
+    // Clearing local tokens isn't enough - Asgardeo keeps its own browser SSO
+    // session, so without this the next "sign in" silently re-authenticates
+    // as the same user instead of showing the login page.
+    if (discovery?.endSessionEndpoint && idToken) {
+      const logoutUrl =
+        `${discovery.endSessionEndpoint}` +
+        `?id_token_hint=${encodeURIComponent(idToken)}` +
+        `&post_logout_redirect_uri=${encodeURIComponent(redirectUri)}`;
+
+      try {
+        await WebBrowser.openAuthSessionAsync(logoutUrl, redirectUri);
+      } catch {
+        // Best-effort: fall through and clear the local session regardless.
+      }
+    }
+
+    await clearLocalSession();
+  }
+
   return {
     signIn: () => promptAsync(),
+    signOut,
     isReady: !!request,
     isExchanging,
     error,

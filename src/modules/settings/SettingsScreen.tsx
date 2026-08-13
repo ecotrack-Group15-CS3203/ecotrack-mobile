@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card } from "../../components/Card";
 import { Chip } from "../../components/Chip";
 import { useAuthStore } from "../auth/authStore";
+import { useAsgardeoAuth } from "../auth/useAsgardeoAuth";
 import { colors, radii, spacing } from "../../theme/colors";
 
 const RADIUS_OPTIONS = ["1 km", "5 km", "10 km", "25 km", "50 km"];
@@ -13,7 +14,7 @@ const URGENCY_OPTIONS = ["All", "Medium+", "High+", "Critical only"];
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
-  const signOut = useAuthStore((state) => state.signOut);
+  const { signOut } = useAsgardeoAuth();
 
   const [previewRole, setPreviewRole] = useState<"citizen" | "volunteer">("citizen");
   const [radius, setRadius] = useState("10 km");
