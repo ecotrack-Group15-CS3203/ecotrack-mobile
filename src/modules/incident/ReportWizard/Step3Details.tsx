@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Chip } from "../../../components/Chip";
@@ -12,6 +13,8 @@ const URGENCY_OPTIONS: { label: Urgency; color: string }[] = [
   { label: "Critical", color: colors.urgency.critical },
 ];
 
+const MIN_TITLE_LENGTH = 5;
+
 type Props = {
   title: string;
   onTitleChange: (value: string) => void;
@@ -22,6 +25,13 @@ type Props = {
   onSubmit: () => void;
 };
 
+function titleError(title: string): string | null {
+  const trimmed = title.trim();
+  if (!trimmed) return "Add a short title so responders know what to expect.";
+  if (trimmed.length < MIN_TITLE_LENGTH) return "Title is a little too short - add a few more details.";
+  return null;
+}
+
 export function Step3Details({
   title,
   onTitleChange,
@@ -31,17 +41,24 @@ export function Step3Details({
   onUrgencyChange,
   onSubmit,
 }: Props) {
+  const [titleTouched, setTitleTouched] = useState(false);
+
+  const error = titleError(title);
+  const showError = titleTouched && !!error;
+
   return (
     <View style={styles.container}>
       <View>
         <Text style={styles.label}>Title</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, showError && styles.inputError]}
           value={title}
           onChangeText={onTitleChange}
+          onBlur={() => setTitleTouched(true)}
           placeholder="Short description of the hazard"
           placeholderTextColor={colors.textMuted}
         />
+        {showError ? <Text style={styles.errorText}>{error}</Text> : null}
       </View>
 
       <View>
@@ -71,7 +88,13 @@ export function Step3Details({
         </View>
       </View>
 
-      <Pressable style={styles.submitButton} onPress={onSubmit} disabled={!title.trim()}>
+      <Pressable
+        style={[styles.submitButton, !!error && styles.submitButtonDisabled]}
+        onPress={() => {
+          setTitleTouched(true);
+          if (!error) onSubmit();
+        }}
+      >
         <Text style={styles.submitLabel}>Submit</Text>
       </Pressable>
     </View>
@@ -97,6 +120,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textPrimary,
   },
+  inputError: {
+    borderColor: colors.danger,
+  },
+  errorText: {
+    marginTop: spacing.xs,
+    fontSize: 12,
+    color: colors.danger,
+  },
   textarea: {
     height: 96,
     textAlignVertical: "top",
@@ -111,6 +142,9 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     paddingVertical: 16,
     alignItems: "center",
+  },
+  submitButtonDisabled: {
+    backgroundColor: colors.chipBackground,
   },
   submitLabel: {
     color: "#FFFFFF",
