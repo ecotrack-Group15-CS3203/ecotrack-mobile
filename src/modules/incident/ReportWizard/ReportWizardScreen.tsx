@@ -23,7 +23,7 @@ export function ReportWizardScreen() {
   const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState<Step>(1);
-  const [photoTaken, setPhotoTaken] = useState(false);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [urgency, setUrgency] = useState<Urgency>("Medium");
@@ -51,9 +51,7 @@ export function ReportWizardScreen() {
         </Text>
       </View>
 
-      {step === 1 ? (
-        <Step1Photo photoTaken={photoTaken} onCapture={() => setPhotoTaken(true)} onNext={() => setStep(2)} />
-      ) : null}
+      {step === 1 ? <Step1Photo photoUri={photoUri} onCapture={setPhotoUri} onNext={() => setStep(2)} /> : null}
       {step === 2 ? <Step2Location onNext={() => setStep(3)} /> : null}
       {step === 3 ? (
         <Step3Details
