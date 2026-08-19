@@ -44,6 +44,13 @@ const config: ExpoConfig = {
         recordAudioAndroid: false,
       },
     ],
+    [
+      "expo-image-picker",
+      {
+        photosPermission: "EcoTrack uses your photos to attach evidence to incident reports.",
+        microphonePermission: false,
+      },
+    ],
   ],
 };
 
