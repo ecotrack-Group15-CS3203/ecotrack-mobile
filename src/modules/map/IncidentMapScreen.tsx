@@ -5,6 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 
 import { Badge } from "../../components/Badge";
 import { Chip } from "../../components/Chip";
+import { useIncidentStore } from "../incident/incidentStore";
 import { colors, radii, spacing } from "../../theme/colors";
 
 type Urgency = "low" | "medium" | "high" | "critical";
@@ -41,6 +42,7 @@ export function IncidentMapScreen() {
   const [filterVisible, setFilterVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState("All");
   const [urgencyFilter, setUrgencyFilter] = useState("All");
+  const pendingCount = useIncidentStore((state) => state.queue.length);
 
   const selected = MOCK_INCIDENTS.find((incident) => incident.id === selectedId) ?? null;
 
@@ -62,6 +64,14 @@ export function IncidentMapScreen() {
           <Ionicons name="options-outline" size={20} color={colors.textPrimary} />
         </Pressable>
       </View>
+
+      {pendingCount > 0 ? (
+        <View style={styles.banner}>
+          <Text style={styles.bannerText}>
+            {pendingCount} report{pendingCount === 1 ? "" : "s"} pending · waiting for connection.
+          </Text>
+        </View>
+      ) : null}
 
       <Pressable style={styles.fab} onPress={() => navigation.getParent()?.navigate("ReportModal" as never)}>
         <Ionicons name="add" size={28} color="#FFFFFF" />
@@ -200,6 +210,22 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     borderWidth: 2,
     borderColor: "#FFFFFF",
+  },
+  banner: {
+    position: "absolute",
+    top: spacing.lg + 56,
+    left: spacing.lg,
+    right: spacing.lg,
+    backgroundColor: colors.textPrimary,
+    borderRadius: radii.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  bannerText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
   },
   fab: {
     position: "absolute",
