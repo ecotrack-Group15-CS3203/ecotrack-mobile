@@ -6,6 +6,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { useAuthStore } from "../modules/auth/authStore";
 import { ReportWizardScreen } from "../modules/incident/ReportWizard/ReportWizardScreen";
+import { useNetworkQueueSync } from "../modules/incident/useNetworkQueueSync";
 import { AuthStack } from "./AuthStack";
 import { MainTabs } from "./MainTabs";
 
@@ -19,6 +20,8 @@ export function NavigationShell() {
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  useNetworkQueueSync();
 
   if (isHydrating) {
     return (
