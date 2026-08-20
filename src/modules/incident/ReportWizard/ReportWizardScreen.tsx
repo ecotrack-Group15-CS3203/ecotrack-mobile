@@ -5,8 +5,9 @@ import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, spacing } from "../../../theme/colors";
+import { useIncidentStore } from "../incidentStore";
 import { Step1Photo } from "./Step1Photo";
-import { Step2Location } from "./Step2Location";
+import { Coordinate, Step2Location } from "./Step2Location";
 import { Step3Details, Urgency } from "./Step3Details";
 import { SuccessStep } from "./SuccessStep";
 
@@ -21,9 +22,11 @@ const STEP_TITLES: Record<1 | 2 | 3, string> = {
 export function ReportWizardScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const submitIncident = useIncidentStore((state) => state.submitIncident);
 
   const [step, setStep] = useState<Step>(1);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [coordinate, setCoordinate] = useState<Coordinate | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [urgency, setUrgency] = useState<Urgency>("Medium");
@@ -52,7 +55,9 @@ export function ReportWizardScreen() {
       </View>
 
       {step === 1 ? <Step1Photo photoUri={photoUri} onCapture={setPhotoUri} onNext={() => setStep(2)} /> : null}
-      {step === 2 ? <Step2Location onNext={() => setStep(3)} /> : null}
+      {step === 2 ? (
+        <Step2Location coordinate={coordinate} onCoordinateChange={setCoordinate} onNext={() => setStep(3)} />
+      ) : null}
       {step === 3 ? (
         <Step3Details
           title={title}
@@ -61,7 +66,11 @@ export function ReportWizardScreen() {
           onDescriptionChange={setDescription}
           urgency={urgency}
           onUrgencyChange={setUrgency}
-          onSubmit={() => setStep("success")}
+          onSubmit={() => {
+            if (!photoUri || !coordinate) return;
+            submitIncident({ photoUri, coordinate, title, description, urgency });
+            setStep("success");
+          }}
         />
       ) : null}
     </View>
