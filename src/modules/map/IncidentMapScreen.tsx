@@ -1,30 +1,28 @@
-import { useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { Camera, MapView, PointAnnotation, UserLocation } from "@rnmapbox/maps";
 
 import { Badge } from "../../components/Badge";
 import { Chip } from "../../components/Chip";
 import { useIncidentStore } from "../incident/incidentStore";
 import { colors, radii, spacing } from "../../theme/colors";
+import { Coordinate, ensureForegroundPermission, getCurrentPosition } from "./locationService";
 
 type Urgency = "low" | "medium" | "high" | "critical";
+type IncidentStatus = "reported" | "claimed";
 
-type MockIncident = {
+type MapIncident = {
   id: string;
   title: string;
   urgency: Urgency;
-  distanceKm: number;
-  top: `${number}%`;
-  left: `${number}%`;
+  status: IncidentStatus;
+  coordinate: Coordinate;
 };
 
-const MOCK_INCIDENTS: MockIncident[] = [
-  { id: "1", title: "Illegal dumping near canal bank", urgency: "critical", distanceKm: 0.4, top: "28%", left: "40%" },
-  { id: "2", title: "Cleared debris pile", urgency: "low", distanceKm: 1.1, top: "35%", left: "76%" },
-  { id: "3", title: "Oil sheen on lake surface", urgency: "high", distanceKm: 0.9, top: "52%", left: "68%" },
-  { id: "4", title: "Overflowing storm drain", urgency: "medium", distanceKm: 1.6, top: "65%", left: "26%" },
-];
+// Falls back to central Colombo when location is unavailable or denied.
+const DEFAULT_CENTER: Coordinate = { latitude: 6.9271, longitude: 79.8612 };
 
 const URGENCY_LABEL: Record<Urgency, string> = {
   low: "LOW",
@@ -36,27 +34,119 @@ const URGENCY_LABEL: Record<Urgency, string> = {
 const STATUS_FILTERS = ["All", "Reported", "Claimed"];
 const URGENCY_FILTERS = ["All", "Low", "Medium", "High", "Critical"];
 
+/**
+ * Placeholder pins, offset from wherever the map is centred so they stay visible
+ * during a demo. Replaced in Phase 2 by GET /v1/incidents/nearby, which takes the
+ * same centre point as lat/lng query params.
+ */
+function buildPlaceholderIncidents(center: Coordinate): MapIncident[] {
+  const offsets: { dLat: number; dLng: number; title: string; urgency: Urgency; status: IncidentStatus }[] = [
+    { dLat: 0.006, dLng: -0.004, title: "Illegal dumping near canal bank", urgency: "critical", status: "reported" },
+    { dLat: 0.004, dLng: 0.007, title: "Cleared debris pile", urgency: "low", status: "claimed" },
+    { dLat: -0.003, dLng: 0.005, title: "Oil sheen on lake surface", urgency: "high", status: "claimed" },
+    { dLat: -0.006, dLng: -0.006, title: "Overflowing storm drain", urgency: "medium", status: "reported" },
+  ];
+
+  return offsets.map((offset, index) => ({
+    id: String(index + 1),
+    title: offset.title,
+    urgency: offset.urgency,
+    status: offset.status,
+    coordinate: {
+      latitude: center.latitude + offset.dLat,
+      longitude: center.longitude + offset.dLng,
+    },
+  }));
+}
+
+function distanceKm(from: Coordinate, to: Coordinate): number {
+  const EARTH_RADIUS_KM = 6371;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+
+  const dLat = toRad(to.latitude - from.latitude);
+  const dLng = toRad(to.longitude - from.longitude);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(from.latitude)) * Math.cos(toRad(to.latitude)) * Math.sin(dLng / 2) ** 2;
+
+  return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export function IncidentMapScreen() {
   const navigation = useNavigation();
+  const pendingCount = useIncidentStore((state) => state.queue.length);
+
+  const [center, setCenter] = useState<Coordinate | null>(null);
+  const [hasLocation, setHasLocation] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterVisible, setFilterVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState("All");
   const [urgencyFilter, setUrgencyFilter] = useState("All");
-  const pendingCount = useIncidentStore((state) => state.queue.length);
 
-  const selected = MOCK_INCIDENTS.find((incident) => incident.id === selectedId) ?? null;
+  // Location is requested here, on first map view - the point of use, per
+  // SRS 3.4.9. A denied prompt still yields a usable map, just not centred
+  // on the user.
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      const granted = await ensureForegroundPermission();
+      if (!active) return;
+
+      if (!granted) {
+        setCenter(DEFAULT_CENTER);
+        return;
+      }
+
+      const position = await getCurrentPosition();
+      if (!active) return;
+
+      setCenter(position?.coordinate ?? DEFAULT_CENTER);
+      setHasLocation(!!position);
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const incidents = useMemo(() => (center ? buildPlaceholderIncidents(center) : []), [center]);
+
+  const visibleIncidents = useMemo(
+    () =>
+      incidents.filter(
+        (incident) =>
+          (statusFilter === "All" || incident.status === statusFilter.toLowerCase()) &&
+          (urgencyFilter === "All" || incident.urgency === urgencyFilter.toLowerCase())
+      ),
+    [incidents, statusFilter, urgencyFilter]
+  );
+
+  const selected = visibleIncidents.find((incident) => incident.id === selectedId) ?? null;
 
   return (
     <View style={styles.container}>
-      <MapBackground />
+      {center ? (
+        <MapView style={styles.map} scaleBarEnabled={false} onPress={() => setSelectedId(null)}>
+          <Camera defaultSettings={{ centerCoordinate: [center.longitude, center.latitude], zoomLevel: 13 }} />
+          {hasLocation ? <UserLocation /> : null}
 
-      {MOCK_INCIDENTS.map((incident) => (
-        <Pressable
-          key={incident.id}
-          onPress={() => setSelectedId(incident.id)}
-          style={[styles.pin, { top: incident.top, left: incident.left, backgroundColor: colors.urgency[incident.urgency] }]}
-        />
-      ))}
+          {visibleIncidents.map((incident) => (
+            <PointAnnotation
+              key={incident.id}
+              id={`incident-${incident.id}`}
+              coordinate={[incident.coordinate.longitude, incident.coordinate.latitude]}
+              onSelected={() => setSelectedId(incident.id)}
+            >
+              <View style={[styles.pin, { backgroundColor: colors.urgency[incident.urgency] }]} />
+            </PointAnnotation>
+          ))}
+        </MapView>
+      ) : (
+        <View style={styles.mapLoading}>
+          <ActivityIndicator />
+        </View>
+      )}
 
       <View style={styles.header}>
         <Text style={styles.headerTitle}>EcoTrack</Text>
@@ -81,18 +171,20 @@ export function IncidentMapScreen() {
         <View style={styles.popup}>
           <View style={styles.popupThumbnail} />
           <View style={styles.popupBody}>
-            <View style={styles.popupHeader}>
-              <Text style={styles.popupTitle} numberOfLines={1}>
-                {selected.title}
-              </Text>
-            </View>
+            <Text style={styles.popupTitle} numberOfLines={1}>
+              {selected.title}
+            </Text>
             <View style={styles.popupMeta}>
               <Badge
                 label={URGENCY_LABEL[selected.urgency]}
                 backgroundColor={colors.urgency[selected.urgency]}
                 textColor="#FFFFFF"
               />
-              <Text style={styles.popupDistance}>{selected.distanceKm} km</Text>
+              {center ? (
+                <Text style={styles.popupDistance}>
+                  {distanceKm(center, selected.coordinate).toFixed(1)} km
+                </Text>
+              ) : null}
             </View>
             <Pressable style={styles.popupButton}>
               <Text style={styles.popupButtonLabel}>View Details</Text>
@@ -130,51 +222,18 @@ export function IncidentMapScreen() {
   );
 }
 
-function MapBackground() {
-  return (
-    <View style={styles.mapBackground}>
-      <View style={[styles.blob, { width: 220, height: 180, top: -40, left: -60, backgroundColor: "#DCE8D6" }]} />
-      <View style={[styles.blob, { width: 200, height: 160, bottom: -30, right: -50, backgroundColor: "#DCE8D6" }]} />
-      <View style={[styles.building, { top: "26%", left: "62%" }]} />
-      <View style={[styles.building, { top: "44%", left: "10%" }]} />
-      <View style={styles.river} />
-      <View style={[styles.road, { top: "0%", left: "18%", height: "120%", transform: [{ rotate: "12deg" }] }]} />
-      <View style={[styles.road, { top: "58%", left: "-10%", width: "90%", transform: [{ rotate: "-6deg" }] }]} />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#EDEDE6",
-    overflow: "hidden",
   },
-  mapBackground: StyleSheet.absoluteFill,
-  blob: {
-    position: "absolute",
-    borderRadius: 999,
+  map: {
+    flex: 1,
   },
-  building: {
-    position: "absolute",
-    width: 36,
-    height: 28,
-    borderRadius: 4,
-    backgroundColor: "#D8D8CE",
-  },
-  river: {
-    position: "absolute",
-    top: "38%",
-    left: -40,
-    width: "160%",
-    height: 46,
-    backgroundColor: "#BFE0F0",
-    transform: [{ rotate: "-8deg" }],
-  },
-  road: {
-    position: "absolute",
-    width: 6,
-    backgroundColor: "#FFFFFF",
+  mapLoading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   header: {
     position: "absolute",
@@ -189,6 +248,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     color: colors.textPrimary,
+    textShadowColor: "rgba(255,255,255,0.9)",
+    textShadowRadius: 6,
   },
   iconButton: {
     width: 40,
@@ -204,7 +265,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   pin: {
-    position: "absolute",
     width: 18,
     height: 18,
     borderRadius: 9,
@@ -269,11 +329,7 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.xs,
   },
-  popupHeader: {
-    flexDirection: "row",
-  },
   popupTitle: {
-    flex: 1,
     fontSize: 14,
     fontWeight: "700",
     color: colors.textPrimary,
