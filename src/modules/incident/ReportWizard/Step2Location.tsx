@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import * as Location from "expo-location";
-import Mapbox, { Camera, MapView, PointAnnotation } from "@rnmapbox/maps";
+import { Camera, MapView, PointAnnotation } from "@rnmapbox/maps";
 
-import { env } from "../../../config/env";
 import { colors, radii, spacing } from "../../../theme/colors";
-
-Mapbox.setAccessToken(env.MAPBOX_TOKEN);
 
 export type Coordinate = { latitude: number; longitude: number };
 
