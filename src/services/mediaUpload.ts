@@ -1,8 +1,6 @@
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
-import { env } from "../config/env";
 import { apiClient } from "./apiClient";
-import uploadUrlFixture from "./mockApi/fixtures/uploadUrl.json";
 
 const MAX_DIMENSION = 1920;
 const JPEG_QUALITY = 0.8;
@@ -24,11 +22,7 @@ type UploadUrlResponse = {
 };
 
 async function requestUploadUrl(filename: string, contentType: string): Promise<UploadUrlResponse> {
-  if (env.USE_MOCK_API) {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return uploadUrlFixture;
-  }
-  const response = await apiClient.post<UploadUrlResponse>("/v1/media/upload-url", { filename, contentType });
+  const response = await apiClient.post<UploadUrlResponse>("/media/upload-url", { filename, contentType });
   return response.data;
 }
 
@@ -47,9 +41,7 @@ export async function uploadIncidentPhoto(compressedUri: string): Promise<string
   const contentType = "image/jpeg";
   const { uploadUrl, mediaUrl } = await requestUploadUrl(filename, contentType);
 
-  if (!env.USE_MOCK_API) {
-    await putToUploadUrl(uploadUrl, compressedUri, contentType);
-  }
+  await putToUploadUrl(uploadUrl, compressedUri, contentType);
 
   return mediaUrl;
 }
