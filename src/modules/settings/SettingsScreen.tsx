@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Card } from "../../components/Card";
 import { Chip } from "../../components/Chip";
-import { useAuthStore } from "../auth/authStore";
+import { useMe } from "../auth/useMe";
 import { useAsgardeoAuth } from "../auth/useAsgardeoAuth";
 import { colors, radii, spacing } from "../../theme/colors";
 
@@ -13,7 +13,7 @@ const URGENCY_OPTIONS = ["All", "Medium+", "High+", "Critical only"];
 
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const user = useAuthStore((state) => state.user);
+  const { data: me } = useMe();
   const { signOut } = useAsgardeoAuth();
 
   const [previewRole, setPreviewRole] = useState<"citizen" | "volunteer">("citizen");
@@ -21,8 +21,8 @@ export function SettingsScreen() {
   const [urgencyThreshold, setUrgencyThreshold] = useState("High+");
   const [simulateOffline, setSimulateOffline] = useState(false);
 
-  const email = user?.email ?? "";
-  const displayName = email ? email.split("@")[0].replace(/[._]/g, " ") : "EcoTrack user";
+  const email = me?.email ?? "";
+  const displayName = me?.fullName || "EcoTrack user";
   const initial = displayName.charAt(0).toUpperCase();
 
   return (

@@ -7,6 +7,9 @@ import { tokenStorage } from "../modules/auth/tokenStorage";
 
 export const apiClient = axios.create({
   baseURL: env.API_BASE_URL,
+  // Without a timeout a request on a dead mobile connection hangs indefinitely,
+  // and every loading state that awaits it hangs with it.
+  timeout: 15_000,
 });
 
 apiClient.interceptors.request.use(async (config) => {

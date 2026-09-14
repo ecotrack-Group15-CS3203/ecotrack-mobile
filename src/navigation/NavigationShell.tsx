@@ -1,16 +1,13 @@
 import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { useAuthStore } from "../modules/auth/authStore";
-import { ReportWizardScreen } from "../modules/incident/ReportWizard/ReportWizardScreen";
 import { useNetworkQueueSync } from "../modules/incident/useNetworkQueueSync";
+import { navigationRef } from "./navigationRef";
 import { AuthStack } from "./AuthStack";
-import { MainTabs } from "./MainTabs";
-
-const RootStack = createNativeStackNavigator();
+import { RootStack } from "./RootStack";
 
 export function NavigationShell() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -33,19 +30,8 @@ export function NavigationShell() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
-        {isAuthenticated ? (
-          <RootStack.Navigator>
-            <RootStack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-            <RootStack.Screen
-              name="ReportModal"
-              component={ReportWizardScreen}
-              options={{ presentation: "modal", headerShown: false }}
-            />
-          </RootStack.Navigator>
-        ) : (
-          <AuthStack />
-        )}
+      <NavigationContainer ref={navigationRef}>
+        {isAuthenticated ? <RootStack /> : <AuthStack />}
       </NavigationContainer>
     </SafeAreaProvider>
   );
