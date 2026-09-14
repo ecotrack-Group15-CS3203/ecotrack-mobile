@@ -9,6 +9,7 @@ import { Chip } from "../../components/Chip";
 import { SEVERITY_LABEL } from "../incident/incidentLabels";
 import { useIncidentStore } from "../incident/incidentStore";
 import { useNearbyIncidents } from "../incident/useIncidents";
+import { useNotificationInbox } from "../notifications/useNotifications";
 import { colors, radii, spacing } from "../../theme/colors";
 import type { IncidentSeverity } from "../../types/api";
 import { Coordinate, ensureForegroundPermission, getCurrentPosition } from "./locationService";
@@ -28,6 +29,8 @@ const URGENCY_FILTERS = ["All", "Low", "Medium", "High", "Critical"];
 export function IncidentMapScreen() {
   const navigation = useNavigation();
   const pendingCount = useIncidentStore((state) => state.queue.length);
+  const { data: inbox } = useNotificationInbox();
+  const unreadCount = inbox?.items.filter((n) => !n.isRead).length ?? 0;
 
   const [center, setCenter] = useState<Coordinate | null>(null);
   const [hasLocation, setHasLocation] = useState(false);
@@ -123,9 +126,21 @@ export function IncidentMapScreen() {
 
       <View style={styles.header}>
         <Text style={styles.headerTitle}>EcoTrack</Text>
-        <Pressable style={styles.iconButton} onPress={() => setFilterVisible(true)}>
-          <Ionicons name="options-outline" size={20} color={colors.textPrimary} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            style={styles.iconButton}
+            onPress={() =>
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (navigation.getParent() as any)?.navigate("NotificationInbox")
+            }
+          >
+            <Ionicons name="notifications-outline" size={20} color={colors.textPrimary} />
+            {unreadCount > 0 ? <View style={styles.unreadDot} /> : null}
+          </Pressable>
+          <Pressable style={styles.iconButton} onPress={() => setFilterVisible(true)}>
+            <Ionicons name="options-outline" size={20} color={colors.textPrimary} />
+          </Pressable>
+        </View>
       </View>
 
       {pendingCount > 0 ? (
@@ -245,6 +260,10 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(255,255,255,0.9)",
     textShadowRadius: 6,
   },
+  headerActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
   iconButton: {
     width: 40,
     height: 40,
@@ -257,6 +276,15 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
+  },
+  unreadDot: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.danger,
   },
   pin: {
     width: 18,

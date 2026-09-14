@@ -6,6 +6,7 @@ import { MyReportsScreen } from "../modules/incident/MyReportsScreen";
 import { InviteAcceptScreen } from "../modules/invite/InviteAcceptScreen";
 import { JoinRequestScreen } from "../modules/organisation/JoinRequestScreen";
 import { OrganisationDirectoryScreen } from "../modules/organisation/OrganisationDirectoryScreen";
+import { NotificationInboxScreen } from "../modules/notifications/NotificationInboxScreen";
 import { ReportWizardScreen } from "../modules/incident/ReportWizard/ReportWizardScreen";
 import { TaskDetailScreen } from "../modules/task/TaskDetailScreen";
 import { TaskEvidenceScreen } from "../modules/task/TaskEvidenceScreen";
@@ -57,6 +58,11 @@ export function RootStack() {
         options={{ title: "Find an Organization" }}
       />
       <Stack.Screen name="JoinRequest" component={JoinRequestScreen} options={{ title: "Join Request" }} />
+      <Stack.Screen
+        name="NotificationInbox"
+        component={NotificationInboxScreen}
+        options={{ title: "Notifications" }}
+      />
     </Stack.Navigator>
   );
 }

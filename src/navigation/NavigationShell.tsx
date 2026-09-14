@@ -5,6 +5,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { useAuthStore } from "../modules/auth/authStore";
 import { useNetworkQueueSync } from "../modules/incident/useNetworkQueueSync";
+import { registerForPushNotifications } from "../modules/notifications/pushRegistration";
+import { useNotificationTapListener } from "../modules/notifications/useNotificationTapListener";
 import { navigate, navigationRef } from "./navigationRef";
 import { pendingLink } from "./pendingLink";
 import { useDeepLinkListener } from "./useDeepLinkListener";
@@ -22,6 +24,18 @@ export function NavigationShell() {
 
   useNetworkQueueSync();
   useDeepLinkListener();
+  useNotificationTapListener();
+
+  // Only ever prompts for the OS permission, never registers silently — see
+  // pushRegistration.ts. Runs once per sign-in rather than on every app open
+  // (isAuthenticated only flips false->true across a real sign-in, not a
+  // token-refresh-driven re-render), which is enough since a token, once
+  // registered, doesn't need re-registering until it changes.
+  useEffect(() => {
+    if (isAuthenticated) {
+      registerForPushNotifications().catch(() => undefined);
+    }
+  }, [isAuthenticated]);
 
   // Replays a link that arrived pre-login (see useDeepLinkListener/pendingLink)
   // once sign-in flips this true and RootStack has had a chance to mount under
