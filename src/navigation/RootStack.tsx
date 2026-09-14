@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
+import { InviteAcceptScreen } from "../modules/invite/InviteAcceptScreen";
 import { ReportWizardScreen } from "../modules/incident/ReportWizard/ReportWizardScreen";
 import { MainTabs } from "./MainTabs";
 
@@ -20,6 +21,11 @@ export function RootStack() {
         name="ReportModal"
         component={ReportWizardScreen}
         options={{ presentation: "modal", headerShown: false }}
+      />
+      <Stack.Screen
+        name="InviteAccept"
+        component={InviteAcceptScreen}
+        options={{ title: "Join organization" }}
       />
     </Stack.Navigator>
   );

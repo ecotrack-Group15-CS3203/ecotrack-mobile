@@ -5,7 +5,9 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { useAuthStore } from "../modules/auth/authStore";
 import { useNetworkQueueSync } from "../modules/incident/useNetworkQueueSync";
-import { navigationRef } from "./navigationRef";
+import { navigate, navigationRef } from "./navigationRef";
+import { pendingLink } from "./pendingLink";
+import { useDeepLinkListener } from "./useDeepLinkListener";
 import { AuthStack } from "./AuthStack";
 import { RootStack } from "./RootStack";
 
@@ -19,6 +21,24 @@ export function NavigationShell() {
   }, [hydrate]);
 
   useNetworkQueueSync();
+  useDeepLinkListener();
+
+  // Replays a link that arrived pre-login (see useDeepLinkListener/pendingLink)
+  // once sign-in flips this true and RootStack has had a chance to mount under
+  // the ref. RootStack renders in the same pass as this effect's dependency
+  // change, but the ref's readiness is set slightly after commit, hence the
+  // one-frame retry rather than assuming it's already ready.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const target = pendingLink.consume();
+    if (!target) return;
+
+    if (navigationRef.isReady()) {
+      navigate(target.route, target.params);
+    } else {
+      requestAnimationFrame(() => navigate(target.route, target.params));
+    }
+  }, [isAuthenticated]);
 
   if (isHydrating) {
     return (
