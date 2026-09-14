@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
+import { IncidentDetailScreen } from "../modules/incident/IncidentDetailScreen";
 import { InviteAcceptScreen } from "../modules/invite/InviteAcceptScreen";
 import { ReportWizardScreen } from "../modules/incident/ReportWizard/ReportWizardScreen";
 import { MainTabs } from "./MainTabs";
@@ -26,6 +27,11 @@ export function RootStack() {
         name="InviteAccept"
         component={InviteAcceptScreen}
         options={{ title: "Join organization" }}
+      />
+      <Stack.Screen
+        name="IncidentDetail"
+        component={IncidentDetailScreen}
+        options={{ title: "Report" }}
       />
     </Stack.Navigator>
   );

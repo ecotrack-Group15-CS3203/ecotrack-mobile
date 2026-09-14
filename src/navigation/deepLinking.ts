@@ -13,7 +13,6 @@ export type DeepLinkTarget = {
  * result (navigate now vs. hold in pendingLink) happens in useDeepLinkListener.
  *
  * Extend the switch below as each target screen is built:
- *   - "incidents" -> IncidentDetail (F1)
  *   - "tasks" -> TaskDetail (F3)
  *   - "events" -> EventDetail (F4)
  */
@@ -34,6 +33,10 @@ export function parseDeepLink(url: string): DeepLinkTarget | null {
 
   if (segments[0] === "invite" && segments[1]) {
     return { route: "InviteAccept", params: { token: segments[1] } };
+  }
+
+  if (segments[0] === "incidents" && segments[1]) {
+    return { route: "IncidentDetail", params: { incidentId: segments[1] } };
   }
 
   return null;

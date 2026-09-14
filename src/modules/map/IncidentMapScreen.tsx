@@ -1,76 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { Camera, MapView, PointAnnotation, UserLocation } from "@rnmapbox/maps";
 
 import { Badge } from "../../components/Badge";
 import { Chip } from "../../components/Chip";
+import { SEVERITY_LABEL } from "../incident/incidentLabels";
 import { useIncidentStore } from "../incident/incidentStore";
+import { useNearbyIncidents } from "../incident/useIncidents";
 import { colors, radii, spacing } from "../../theme/colors";
+import type { IncidentSeverity } from "../../types/api";
 import { Coordinate, ensureForegroundPermission, getCurrentPosition } from "./locationService";
 
-type Urgency = "low" | "medium" | "high" | "critical";
 type IncidentStatus = "reported" | "claimed";
-
-type MapIncident = {
-  id: string;
-  title: string;
-  urgency: Urgency;
-  status: IncidentStatus;
-  coordinate: Coordinate;
-};
 
 // Falls back to central Colombo when location is unavailable or denied.
 const DEFAULT_CENTER: Coordinate = { latitude: 6.9271, longitude: 79.8612 };
 
-const URGENCY_LABEL: Record<Urgency, string> = {
-  low: "LOW",
-  medium: "MEDIUM",
-  high: "HIGH",
-  critical: "CRITICAL",
-};
+// Matches the fixed set of radii the Settings screen offers, in metres. 10km
+// is the same default the backend applies when this param is omitted.
+const SEARCH_RADIUS_METERS = 10_000;
 
 const STATUS_FILTERS = ["All", "Reported", "Claimed"];
 const URGENCY_FILTERS = ["All", "Low", "Medium", "High", "Critical"];
-
-/**
- * Placeholder pins, offset from wherever the map is centred so they stay visible
- * during a demo. Replaced in Phase 2 by GET /v1/incidents/nearby, which takes the
- * same centre point as lat/lng query params.
- */
-function buildPlaceholderIncidents(center: Coordinate): MapIncident[] {
-  const offsets: { dLat: number; dLng: number; title: string; urgency: Urgency; status: IncidentStatus }[] = [
-    { dLat: 0.006, dLng: -0.004, title: "Illegal dumping near canal bank", urgency: "critical", status: "reported" },
-    { dLat: 0.004, dLng: 0.007, title: "Cleared debris pile", urgency: "low", status: "claimed" },
-    { dLat: -0.003, dLng: 0.005, title: "Oil sheen on lake surface", urgency: "high", status: "claimed" },
-    { dLat: -0.006, dLng: -0.006, title: "Overflowing storm drain", urgency: "medium", status: "reported" },
-  ];
-
-  return offsets.map((offset, index) => ({
-    id: String(index + 1),
-    title: offset.title,
-    urgency: offset.urgency,
-    status: offset.status,
-    coordinate: {
-      latitude: center.latitude + offset.dLat,
-      longitude: center.longitude + offset.dLng,
-    },
-  }));
-}
-
-function distanceKm(from: Coordinate, to: Coordinate): number {
-  const EARTH_RADIUS_KM = 6371;
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-
-  const dLat = toRad(to.latitude - from.latitude);
-  const dLng = toRad(to.longitude - from.longitude);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(from.latitude)) * Math.cos(toRad(to.latitude)) * Math.sin(dLng / 2) ** 2;
-
-  return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 
 export function IncidentMapScreen() {
   const navigation = useNavigation();
@@ -110,16 +63,22 @@ export function IncidentMapScreen() {
     };
   }, []);
 
-  const incidents = useMemo(() => (center ? buildPlaceholderIncidents(center) : []), [center]);
+  const { data: incidents = [], isLoading: incidentsLoading } = useNearbyIncidents(
+    center?.latitude ?? null,
+    center?.longitude ?? null,
+    SEARCH_RADIUS_METERS,
+  );
 
   const visibleIncidents = useMemo(
     () =>
-      incidents.filter(
-        (incident) =>
-          (statusFilter === "All" || incident.status === statusFilter.toLowerCase()) &&
-          (urgencyFilter === "All" || incident.urgency === urgencyFilter.toLowerCase())
-      ),
-    [incidents, statusFilter, urgencyFilter]
+      incidents.filter((incident) => {
+        const status: IncidentStatus = incident.claimed ? "claimed" : "reported";
+        return (
+          (statusFilter === "All" || status === statusFilter.toLowerCase()) &&
+          (urgencyFilter === "All" || incident.severity === (urgencyFilter.toLowerCase() as IncidentSeverity))
+        );
+      }),
+    [incidents, statusFilter, urgencyFilter],
   );
 
   const selected = visibleIncidents.find((incident) => incident.id === selectedId) ?? null;
@@ -127,7 +86,15 @@ export function IncidentMapScreen() {
   return (
     <View style={styles.container}>
       {center ? (
-        <MapView style={styles.map} scaleBarEnabled={false} onPress={() => setSelectedId(null)}>
+        <MapView
+          style={styles.map}
+          scaleBarEnabled={false}
+          onPress={() => setSelectedId(null)}
+          // Required attribution per Mapbox ToS and SRS §3.11.4 — kept explicit
+          // rather than relying on the SDK default so it can't silently regress.
+          attributionEnabled
+          logoEnabled
+        >
           <Camera defaultSettings={{ centerCoordinate: [center.longitude, center.latitude], zoomLevel: 13 }} />
           {hasLocation ? <UserLocation /> : null}
 
@@ -135,10 +102,10 @@ export function IncidentMapScreen() {
             <PointAnnotation
               key={incident.id}
               id={`incident-${incident.id}`}
-              coordinate={[incident.coordinate.longitude, incident.coordinate.latitude]}
+              coordinate={[incident.lng, incident.lat]}
               onSelected={() => setSelectedId(incident.id)}
             >
-              <View style={[styles.pin, { backgroundColor: colors.urgency[incident.urgency] }]} />
+              <View style={[styles.pin, { backgroundColor: colors.urgency[incident.severity] }]} />
             </PointAnnotation>
           ))}
         </MapView>
@@ -147,6 +114,12 @@ export function IncidentMapScreen() {
           <ActivityIndicator />
         </View>
       )}
+
+      {center && incidentsLoading ? (
+        <View style={styles.loadingChip}>
+          <ActivityIndicator size="small" color={colors.primary} />
+        </View>
+      ) : null}
 
       <View style={styles.header}>
         <Text style={styles.headerTitle}>EcoTrack</Text>
@@ -169,24 +142,32 @@ export function IncidentMapScreen() {
 
       {selected ? (
         <View style={styles.popup}>
-          <View style={styles.popupThumbnail} />
+          {selected.thumbnailUrl ? (
+            <Image source={{ uri: selected.thumbnailUrl }} style={styles.popupThumbnail} />
+          ) : (
+            <View style={styles.popupThumbnail} />
+          )}
           <View style={styles.popupBody}>
             <Text style={styles.popupTitle} numberOfLines={1}>
               {selected.title}
             </Text>
             <View style={styles.popupMeta}>
               <Badge
-                label={URGENCY_LABEL[selected.urgency]}
-                backgroundColor={colors.urgency[selected.urgency]}
+                label={SEVERITY_LABEL[selected.severity]}
+                backgroundColor={colors.urgency[selected.severity]}
                 textColor="#FFFFFF"
               />
-              {center ? (
-                <Text style={styles.popupDistance}>
-                  {distanceKm(center, selected.coordinate).toFixed(1)} km
-                </Text>
-              ) : null}
+              <Text style={styles.popupDistance}>{(selected.distanceMeters / 1000).toFixed(1)} km</Text>
             </View>
-            <Pressable style={styles.popupButton}>
+            <Pressable
+              style={styles.popupButton}
+              onPress={() =>
+                // No app-wide navigation param typing exists yet (every screen
+                // in this codebase navigates via untyped string names) — `any`
+                // here matches that, not a new gap.
+                (navigation.getParent() as any)?.navigate("IncidentDetail", { incidentId: selected.id })
+              }
+            >
               <Text style={styles.popupButtonLabel}>View Details</Text>
             </Pressable>
           </View>
@@ -234,6 +215,19 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  loadingChip: {
+    position: "absolute",
+    top: spacing.lg,
+    alignSelf: "center",
+    backgroundColor: colors.surface,
+    borderRadius: radii.pill,
+    padding: spacing.sm,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   header: {
     position: "absolute",
