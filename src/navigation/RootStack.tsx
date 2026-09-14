@@ -7,6 +7,7 @@ import { InviteAcceptScreen } from "../modules/invite/InviteAcceptScreen";
 import { JoinRequestScreen } from "../modules/organisation/JoinRequestScreen";
 import { OrganisationDirectoryScreen } from "../modules/organisation/OrganisationDirectoryScreen";
 import { NotificationInboxScreen } from "../modules/notifications/NotificationInboxScreen";
+import { DeleteAccountScreen } from "../modules/settings/DeleteAccountScreen";
 import { ReportWizardScreen } from "../modules/incident/ReportWizard/ReportWizardScreen";
 import { TaskDetailScreen } from "../modules/task/TaskDetailScreen";
 import { TaskEvidenceScreen } from "../modules/task/TaskEvidenceScreen";
@@ -62,6 +63,11 @@ export function RootStack() {
         name="NotificationInbox"
         component={NotificationInboxScreen}
         options={{ title: "Notifications" }}
+      />
+      <Stack.Screen
+        name="DeleteAccount"
+        component={DeleteAccountScreen}
+        options={{ title: "Delete Account" }}
       />
     </Stack.Navigator>
   );

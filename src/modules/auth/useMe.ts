@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuthStore } from "./authStore";
-import { authApi } from "./api/auth.api";
+import { authApi, UpdateProfilePayload } from "./api/auth.api";
 
 export const meQueryKey = ["me"] as const;
 
@@ -25,5 +25,18 @@ export function useMe() {
     // invalidates ['me'] explicitly, so a long staleTime here just avoids
     // redundant refetches on every screen focus in between.
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** authApi.updateProfile already returns the fresh Me row, so the mutation
+ * writes it straight into the ['me'] cache instead of issuing a second
+ * GET /auth/me right after the PATCH that just returned the same data. */
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdateProfilePayload) => authApi.updateProfile(payload),
+    onSuccess: (me) => {
+      queryClient.setQueryData(meQueryKey, me);
+    },
   });
 }
