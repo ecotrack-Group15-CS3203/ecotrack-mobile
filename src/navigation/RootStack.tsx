@@ -4,6 +4,8 @@ import { EventDetailScreen } from "../modules/event/EventDetailScreen";
 import { IncidentDetailScreen } from "../modules/incident/IncidentDetailScreen";
 import { MyReportsScreen } from "../modules/incident/MyReportsScreen";
 import { InviteAcceptScreen } from "../modules/invite/InviteAcceptScreen";
+import { JoinRequestScreen } from "../modules/organisation/JoinRequestScreen";
+import { OrganisationDirectoryScreen } from "../modules/organisation/OrganisationDirectoryScreen";
 import { ReportWizardScreen } from "../modules/incident/ReportWizard/ReportWizardScreen";
 import { TaskDetailScreen } from "../modules/task/TaskDetailScreen";
 import { TaskEvidenceScreen } from "../modules/task/TaskEvidenceScreen";
@@ -49,6 +51,12 @@ export function RootStack() {
         options={{ presentation: "modal", headerShown: false }}
       />
       <Stack.Screen name="EventDetail" component={EventDetailScreen} options={{ title: "Event" }} />
+      <Stack.Screen
+        name="OrganisationDirectory"
+        component={OrganisationDirectoryScreen}
+        options={{ title: "Find an Organization" }}
+      />
+      <Stack.Screen name="JoinRequest" component={JoinRequestScreen} options={{ title: "Join Request" }} />
     </Stack.Navigator>
   );
 }

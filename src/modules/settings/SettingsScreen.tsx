@@ -76,10 +76,26 @@ export function SettingsScreen() {
         </Card>
       </Pressable>
 
-      <Card>
-        <Text style={styles.cardLabel}>ORGANIZATION</Text>
-        <Text style={styles.orgName}>Kelani Watch Collective</Text>
-      </Card>
+      {!me?.organisation ? (
+        <Pressable
+          onPress={() =>
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (navigation as any).navigate("OrganisationDirectory")
+          }
+        >
+          <Card style={styles.myReportsRow}>
+            <Text style={styles.myReportsLabel}>Find an Organization</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Card>
+        </Pressable>
+      ) : null}
+
+      {me?.organisation ? (
+        <Card>
+          <Text style={styles.cardLabel}>ORGANIZATION</Text>
+          <Text style={styles.orgName}>{me.organisation.name}</Text>
+        </Card>
+      ) : null}
 
       <Text style={styles.sectionLabel}>NOTIFICATION RADIUS</Text>
       <View style={styles.chipRow}>

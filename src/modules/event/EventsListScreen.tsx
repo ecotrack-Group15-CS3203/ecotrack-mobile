@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Badge } from "../../components/Badge";
 import { Card } from "../../components/Card";
+import { PrimaryButton } from "../../components/PrimaryButton";
 import { colors, radii, spacing } from "../../theme/colors";
 import { toApiError } from "../../services/apiError";
 import { useMe } from "../auth/useMe";
@@ -19,8 +20,15 @@ export function EventsListScreen() {
 
   if (!me?.organisation) {
     return (
-      <View style={[styles.centered, { paddingTop: insets.top }]}>
+      <View style={[styles.centered, { paddingTop: insets.top, gap: spacing.md }]}>
         <Text style={styles.emptyText}>Join an organization to see its upcoming events.</Text>
+        <PrimaryButton
+          label="Find an Organization"
+          onPress={() =>
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (navigation as any).navigate("OrganisationDirectory")
+          }
+        />
       </View>
     );
   }

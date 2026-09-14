@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Card } from "../../components/Card";
 import { Chip } from "../../components/Chip";
+import { PrimaryButton } from "../../components/PrimaryButton";
 import { colors, spacing } from "../../theme/colors";
 import { toApiError } from "../../services/apiError";
 import { useMe } from "../auth/useMe";
@@ -36,10 +37,15 @@ export function MyTasksScreen() {
 
   if (!me?.organisation) {
     return (
-      <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <Text style={styles.emptyText}>
-          Join an organization to be assigned cleanup tasks.
-        </Text>
+      <View style={[styles.centered, { paddingTop: insets.top, gap: spacing.md }]}>
+        <Text style={styles.emptyText}>Join an organization to be assigned cleanup tasks.</Text>
+        <PrimaryButton
+          label="Find an Organization"
+          onPress={() =>
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (navigation as any).navigate("OrganisationDirectory")
+          }
+        />
       </View>
     );
   }
