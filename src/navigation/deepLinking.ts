@@ -12,8 +12,7 @@ export type DeepLinkTarget = {
  * RootStack) is what's on screen. Parsing here and deciding what to do with the
  * result (navigate now vs. hold in pendingLink) happens in useDeepLinkListener.
  *
- * Extend the switch below as each target screen is built:
- *   - "events" -> EventDetail (F4)
+ * Extend the switch below as each target screen is built (push routing, F7).
  */
 export function parseDeepLink(url: string): DeepLinkTarget | null {
   // The OIDC redirect (`ecotrack://redirect?...`) is expo-auth-session's own
@@ -40,6 +39,10 @@ export function parseDeepLink(url: string): DeepLinkTarget | null {
 
   if (segments[0] === "tasks" && segments[1]) {
     return { route: "TaskDetail", params: { taskId: segments[1] } };
+  }
+
+  if (segments[0] === "events" && segments[1]) {
+    return { route: "EventDetail", params: { eventId: segments[1] } };
   }
 
   return null;

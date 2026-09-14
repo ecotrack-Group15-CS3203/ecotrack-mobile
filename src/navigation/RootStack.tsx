@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
+import { EventDetailScreen } from "../modules/event/EventDetailScreen";
 import { IncidentDetailScreen } from "../modules/incident/IncidentDetailScreen";
 import { MyReportsScreen } from "../modules/incident/MyReportsScreen";
 import { InviteAcceptScreen } from "../modules/invite/InviteAcceptScreen";
@@ -47,6 +48,7 @@ export function RootStack() {
         component={TaskEvidenceScreen}
         options={{ presentation: "modal", headerShown: false }}
       />
+      <Stack.Screen name="EventDetail" component={EventDetailScreen} options={{ title: "Event" }} />
     </Stack.Navigator>
   );
 }
