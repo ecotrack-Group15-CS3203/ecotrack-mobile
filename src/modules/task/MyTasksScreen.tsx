@@ -1,52 +1,73 @@
-import { useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Card } from "../../components/Card";
 import { Chip } from "../../components/Chip";
 import { colors, spacing } from "../../theme/colors";
+import { toApiError } from "../../services/apiError";
+import { useMe } from "../auth/useMe";
+import { taskStatusLabel } from "./taskLabels";
+import { useMyTasks } from "./useTasks";
 
-type TaskStatus = "assigned" | "completed";
-
-type MockTask = {
-  id: string;
-  title: string;
-  description: string;
-  status: TaskStatus;
-  dueLabel: string;
-};
-
-const MOCK_TASKS: MockTask[] = [
-  {
-    id: "1",
-    title: "Clear debris — canal bank",
-    description: "Illegal dumping near canal bank",
-    status: "assigned",
-    dueLabel: "Due Aug 9",
-  },
-  {
-    id: "2",
-    title: "Bag collected oil-soaked waste",
-    description: "Oil sheen spreading on lake surface",
-    status: "completed",
-    dueLabel: "Due Aug 6",
-  },
-];
-
-const FILTERS = ["All", "Assigned", "Completed"] as const;
+const FILTERS = ["All", "Assigned", "In Progress", "Completed"] as const;
+type Filter = (typeof FILTERS)[number];
 
 export function MyTasksScreen() {
   const insets = useSafeAreaInsets();
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
+  const navigation = useNavigation();
+  const { data: me } = useMe();
+  const [filter, setFilter] = useState<Filter>("All");
 
-  const tasks = MOCK_TASKS.filter((task) => filter === "All" || task.status === filter.toLowerCase());
+  const { data, isLoading, isError, error, refetch, isRefetching } = useMyTasks();
+  const tasks = data?.items ?? [];
+
+  const visibleTasks = useMemo(() => {
+    if (filter === "All") return tasks;
+    if (filter === "Assigned") {
+      return tasks.filter((task) =>
+        task.assignments.some((a) => a.status === "assigned" || a.status === "accepted"),
+      );
+    }
+    if (filter === "In Progress") return tasks.filter((task) => task.status === "in_progress");
+    return tasks.filter((task) => task.status === "completed");
+  }, [tasks, filter]);
+
+  if (!me?.organisation) {
+    return (
+      <View style={[styles.centered, { paddingTop: insets.top }]}>
+        <Text style={styles.emptyText}>
+          Join an organization to be assigned cleanup tasks.
+        </Text>
+      </View>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View style={[styles.centered, { paddingTop: insets.top }]}>
+        <Text style={styles.errorText}>{toApiError(error).message}</Text>
+      </View>
+    );
+  }
 
   return (
     <FlatList
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
-      data={tasks}
+      data={visibleTasks}
       keyExtractor={(task) => task.id}
+      refreshing={isRefetching}
+      onRefresh={refetch}
       ListHeaderComponent={
         <>
           <Text style={styles.title}>My Tasks</Text>
@@ -58,15 +79,29 @@ export function MyTasksScreen() {
           </View>
         </>
       }
+      ListEmptyComponent={
+        <View style={styles.centered}>
+          <Text style={styles.emptyText}>No tasks here.</Text>
+        </View>
+      }
       renderItem={({ item }) => (
-        <Card style={styles.taskCard}>
-          <View style={styles.taskHeader}>
-            <Text style={styles.taskTitle}>{item.title}</Text>
-            <Text style={styles.taskStatus}>{item.status.toUpperCase()}</Text>
-          </View>
-          <Text style={styles.taskDescription}>{item.description}</Text>
-          <Text style={styles.taskDue}>{item.dueLabel}</Text>
-        </Card>
+        <Pressable
+          onPress={() =>
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (navigation as any).navigate("TaskDetail", { taskId: item.id })
+          }
+        >
+          <Card style={styles.taskCard}>
+            <View style={styles.taskHeader}>
+              <Text style={styles.taskTitle} numberOfLines={1}>
+                {item.title}
+              </Text>
+              <Text style={styles.taskStatus}>{taskStatusLabel(item)}</Text>
+            </View>
+            {item.description ? <Text style={styles.taskDescription}>{item.description}</Text> : null}
+            <Text style={styles.taskDue}>Due {new Date(item.dueDate).toLocaleDateString()}</Text>
+          </Card>
+        </Pressable>
       )}
       ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
     />
@@ -81,6 +116,23 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
+    flexGrow: 1,
+  },
+  centered: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.lg,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.textMuted,
+    textAlign: "center",
+  },
+  errorText: {
+    fontSize: 14,
+    color: colors.danger,
+    textAlign: "center",
   },
   title: {
     fontSize: 24,
@@ -94,6 +146,7 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
     marginTop: spacing.md,
     marginBottom: spacing.lg,

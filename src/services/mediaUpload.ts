@@ -35,13 +35,24 @@ async function putToUploadUrl(uploadUrl: string, uri: string, contentType: strin
 /**
  * Requests a fresh presigned URL every call - a previously issued one may have
  * expired (5 min TTL) and must not be reused across retries (SRS 3.1.15).
+ * Shared by incident photos (§3.1.15) and task completion evidence (§3.1.16) —
+ * both go through the same presigned-S3 flow, just with a different filename
+ * prefix so objects from each are easy to tell apart in the bucket.
  */
-export async function uploadIncidentPhoto(compressedUri: string): Promise<string> {
-  const filename = `incident-${Date.now()}.jpg`;
+async function uploadPhoto(compressedUri: string, filenamePrefix: string): Promise<string> {
+  const filename = `${filenamePrefix}-${Date.now()}.jpg`;
   const contentType = "image/jpeg";
   const { uploadUrl, mediaUrl } = await requestUploadUrl(filename, contentType);
 
   await putToUploadUrl(uploadUrl, compressedUri, contentType);
 
   return mediaUrl;
+}
+
+export function uploadIncidentPhoto(compressedUri: string): Promise<string> {
+  return uploadPhoto(compressedUri, "incident");
+}
+
+export function uploadTaskEvidencePhoto(compressedUri: string): Promise<string> {
+  return uploadPhoto(compressedUri, "task-evidence");
 }

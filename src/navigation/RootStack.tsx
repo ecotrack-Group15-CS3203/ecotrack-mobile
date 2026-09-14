@@ -4,6 +4,8 @@ import { IncidentDetailScreen } from "../modules/incident/IncidentDetailScreen";
 import { MyReportsScreen } from "../modules/incident/MyReportsScreen";
 import { InviteAcceptScreen } from "../modules/invite/InviteAcceptScreen";
 import { ReportWizardScreen } from "../modules/incident/ReportWizard/ReportWizardScreen";
+import { TaskDetailScreen } from "../modules/task/TaskDetailScreen";
+import { TaskEvidenceScreen } from "../modules/task/TaskEvidenceScreen";
 import { MainTabs } from "./MainTabs";
 
 /**
@@ -38,6 +40,12 @@ export function RootStack() {
         name="MyReports"
         component={MyReportsScreen}
         options={{ title: "My Reports" }}
+      />
+      <Stack.Screen name="TaskDetail" component={TaskDetailScreen} options={{ title: "Task" }} />
+      <Stack.Screen
+        name="TaskEvidence"
+        component={TaskEvidenceScreen}
+        options={{ presentation: "modal", headerShown: false }}
       />
     </Stack.Navigator>
   );
