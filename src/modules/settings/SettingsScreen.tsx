@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { ScrollView, StyleSheet, Switch, Text, View, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Card } from "../../components/Card";
@@ -13,6 +15,7 @@ const URGENCY_OPTIONS = ["All", "Medium+", "High+", "Critical only"];
 
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const { data: me } = useMe();
   const { signOut } = useAsgardeoAuth();
 
@@ -60,6 +63,18 @@ export function SettingsScreen() {
           </Text>
         </View>
       </View>
+
+      <Pressable
+        onPress={() =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (navigation as any).navigate("MyReports")
+        }
+      >
+        <Card style={styles.myReportsRow}>
+          <Text style={styles.myReportsLabel}>My Reports</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </Card>
+      </Pressable>
 
       <Card>
         <Text style={styles.cardLabel}>ORGANIZATION</Text>
@@ -172,6 +187,16 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 13,
     color: colors.textSecondary,
+  },
+  myReportsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  myReportsLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.textPrimary,
   },
   cardLabel: {
     fontSize: 11,
