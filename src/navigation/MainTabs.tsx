@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
+import { useMe } from "../modules/auth/useMe";
 import { EventsListScreen } from "../modules/event/EventsListScreen";
 import { IncidentMapScreen } from "../modules/map/IncidentMapScreen";
 import { SettingsScreen } from "../modules/settings/SettingsScreen";
@@ -13,6 +14,10 @@ const Tab = createBottomTabNavigator();
 
 export function MainTabs() {
   const { t } = useTranslation();
+  // Per ARCHITECTURE.md §5: meaningless for a bare citizen, since both
+  // screens are entirely org-scoped — hidden rather than shown empty.
+  const { data: me } = useMe();
+  const hasOrganisation = !!me?.organisation;
 
   return (
     <Tab.Navigator
@@ -33,14 +38,16 @@ export function MainTabs() {
           tabBarIcon: ({ color, size }) => <Ionicons name="location-outline" size={size} color={color} />,
         }}
       />
-      <Tab.Screen
-        name="MyTasks"
-        component={MyTasksScreen}
-        options={{
-          title: t("nav.myTasks"),
-          tabBarIcon: ({ color, size }) => <Ionicons name="checkbox-outline" size={size} color={color} />,
-        }}
-      />
+      {hasOrganisation ? (
+        <Tab.Screen
+          name="MyTasks"
+          component={MyTasksScreen}
+          options={{
+            title: t("nav.myTasks"),
+            tabBarIcon: ({ color, size }) => <Ionicons name="checkbox-outline" size={size} color={color} />,
+          }}
+        />
+      ) : null}
       <Tab.Screen
         name="Report"
         component={ReportPlaceholderScreen}
@@ -57,14 +64,16 @@ export function MainTabs() {
           },
         })}
       />
-      <Tab.Screen
-        name="MyEvents"
-        component={EventsListScreen}
-        options={{
-          title: t("nav.myEvents"),
-          tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,
-        }}
-      />
+      {hasOrganisation ? (
+        <Tab.Screen
+          name="MyEvents"
+          component={EventsListScreen}
+          options={{
+            title: t("nav.myEvents"),
+            tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,
+          }}
+        />
+      ) : null}
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}

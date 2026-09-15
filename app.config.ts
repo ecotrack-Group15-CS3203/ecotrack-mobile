@@ -51,7 +51,18 @@ const config: ExpoConfig = {
         microphonePermission: false,
       },
     ],
+    "expo-notifications",
   ],
+  // getExpoPushTokenAsync (pushRegistration.ts, F7) requires this — without it
+  // the call fails at runtime with a non-obvious error rather than a clear
+  // "no project ID configured" message. Run `eas init` to get a real project
+  // ID before building for push notifications; this placeholder lets the rest
+  // of the app run in Expo Go / dev builds without one.
+  extra: {
+    eas: {
+      projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? "00000000-0000-0000-0000-000000000000",
+    },
+  },
 };
 
 export default config;

@@ -1,7 +1,6 @@
 import * as Notifications from "expo-notifications";
 import { create } from "zustand";
 
-import { env } from "../../config/env";
 import { apiClient } from "../../services/apiClient";
 import { uploadIncidentPhoto } from "../../services/mediaUpload";
 import {
@@ -32,13 +31,8 @@ async function notifySuccess(title: string): Promise<void> {
 }
 
 async function submitDraft(draft: IncidentDraft): Promise<void> {
-  if (env.USE_MOCK_API) {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    return;
-  }
-
   const mediaUrl = await uploadIncidentPhoto(draft.photoUri);
-  await apiClient.post("/v1/incidents", {
+  await apiClient.post("/incidents", {
     title: draft.title,
     description: draft.description,
     location: { lat: draft.coordinate.latitude, lng: draft.coordinate.longitude },
