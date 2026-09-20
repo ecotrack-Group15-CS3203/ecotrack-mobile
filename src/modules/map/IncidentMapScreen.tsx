@@ -10,18 +10,16 @@ import { Chip } from "../../components/Chip";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { SectionLabel } from "../../components/SectionLabel";
 import { SEVERITY_LABEL } from "../incident/incidentLabels";
-import { useIncidentStore } from "../incident/incidentStore";
+import { QueueBanner } from "../incident/QueueBanner";
 import { useNearbyIncidents } from "../incident/useIncidents";
 import { useNotificationInbox } from "../notifications/useNotifications";
 import { colors, radii, shadows, spacing, typography } from "../../theme/colors";
 import { urgencyTone } from "../../theme/tones";
 import type { IncidentSeverity } from "../../types/api";
-import { Coordinate, ensureForegroundPermission, getCurrentPosition } from "./locationService";
+import { Coordinate, DEFAULT_MAP_CENTER, ensureForegroundPermission, getCurrentPosition } from "./locationService";
 
 type IncidentStatus = "reported" | "claimed";
 
-// Falls back to central Colombo when location is unavailable or denied.
-const DEFAULT_CENTER: Coordinate = { latitude: 6.9271, longitude: 79.8612 };
 
 // Matches the fixed set of radii the Settings screen offers, in metres. 10km
 // is the same default the backend applies when this param is omitted.
@@ -33,7 +31,6 @@ const URGENCY_FILTERS = ["All", "Low", "Medium", "High", "Critical"];
 export function IncidentMapScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const pendingCount = useIncidentStore((state) => state.queue.length);
   const { data: inbox } = useNotificationInbox();
   const unreadCount = inbox?.items.filter((n) => !n.isRead).length ?? 0;
 
@@ -55,14 +52,14 @@ export function IncidentMapScreen() {
       if (!active) return;
 
       if (!granted) {
-        setCenter(DEFAULT_CENTER);
+        setCenter(DEFAULT_MAP_CENTER);
         return;
       }
 
       const position = await getCurrentPosition();
       if (!active) return;
 
-      setCenter(position?.coordinate ?? DEFAULT_CENTER);
+      setCenter(position?.coordinate ?? DEFAULT_MAP_CENTER);
       setHasLocation(!!position);
     })();
 
@@ -148,14 +145,9 @@ export function IncidentMapScreen() {
         </View>
       </View>
 
-      {pendingCount > 0 ? (
-        <View style={[styles.banner, { top: insets.top + spacing.sm + 52 }]}>
-          <Ionicons name="cloud-offline-outline" size={15} color={colors.onPrimary} />
-          <Text style={styles.bannerText}>
-            {pendingCount} report{pendingCount === 1 ? "" : "s"} pending · waiting for connection.
-          </Text>
-        </View>
-      ) : null}
+      <View style={[styles.banner, { top: insets.top + spacing.sm + 52 }]} pointerEvents="box-none">
+        <QueueBanner />
+      </View>
 
       <Pressable style={styles.fab} onPress={() => navigation.getParent()?.navigate("ReportModal" as never)}>
         <Ionicons name="add" size={28} color={colors.onPrimary} />
@@ -291,20 +283,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: spacing.lg,
     right: spacing.lg,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.textPrimary,
-    borderRadius: radii.sm,
-    paddingVertical: 10,
-    paddingHorizontal: spacing.md,
-    ...shadows.card,
-  },
-  bannerText: {
-    color: colors.onPrimary,
-    fontSize: 12.5,
-    fontWeight: "600",
   },
   fab: {
     position: "absolute",

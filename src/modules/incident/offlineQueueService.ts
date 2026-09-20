@@ -20,7 +20,15 @@ export type IncidentDraft = IncidentDraftInput & {
   id: string;
   status: IncidentDraftStatus;
   createdAt: number;
+  /** Failed submission attempts so far. Optional because drafts persisted before
+   * this field existed don't carry it — read it as `attempts ?? 0`. */
+  attempts?: number;
+  /** Why the last attempt failed, in words fit to show the user. */
+  lastError?: string;
 };
+
+/** Extra state recorded alongside a status change. `lastError: null` clears it. */
+export type DraftStatusDetails = { attempts?: number; lastError?: string | null };
 
 function readAll(): IncidentDraft[] {
   const raw = storage.getString(QUEUE_KEY);
@@ -48,8 +56,17 @@ export const offlineQueueService = {
     return draft;
   },
 
-  updateStatus(id: string, status: IncidentDraftStatus): void {
-    writeAll(readAll().map((draft) => (draft.id === id ? { ...draft, status } : draft)));
+  updateStatus(id: string, status: IncidentDraftStatus, details: DraftStatusDetails = {}): void {
+    writeAll(
+      readAll().map((draft) => {
+        if (draft.id !== id) return draft;
+        const next: IncidentDraft = { ...draft, status };
+        if (details.attempts !== undefined) next.attempts = details.attempts;
+        if (details.lastError === null) delete next.lastError;
+        else if (details.lastError !== undefined) next.lastError = details.lastError;
+        return next;
+      }),
+    );
   },
 
   remove(id: string): void {
