@@ -1,6 +1,5 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 
 import { useMe } from "../modules/auth/useMe";
@@ -9,7 +8,7 @@ import { MyReportsScreen } from "../modules/incident/MyReportsScreen";
 import { IncidentMapScreen } from "../modules/map/IncidentMapScreen";
 import { SettingsScreen } from "../modules/settings/SettingsScreen";
 import { MyTasksScreen } from "../modules/task/MyTasksScreen";
-import { colors, spacing } from "../theme/colors";
+import { AppTabBar } from "./AppTabBar";
 
 const Tab = createBottomTabNavigator();
 
@@ -27,15 +26,8 @@ function tabIcon(active: IconName, inactive: IconName) {
   };
 }
 
-/** Space above the icons, and below the labels *on top of* the system inset. */
-const TAB_PADDING_TOP = 10;
-const TAB_PADDING_BOTTOM = 8;
-/** Icon (24) + gap + label (~14). */
-const TAB_CONTENT_HEIGHT = 44;
-
 export function MainTabs() {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   // Per ARCHITECTURE.md §5: meaningless for a bare citizen, since both
   // screens are entirely org-scoped — hidden rather than shown empty.
   const { data: me } = useMe();
@@ -43,22 +35,10 @@ export function MainTabs() {
 
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          // An explicit height replaces the library's default, which is what added
-          // the bottom safe-area inset — leaving it out let the gesture bar sit on
-          // top of the labels. The inset is added back here.
-          height: TAB_PADDING_TOP + TAB_CONTENT_HEIGHT + TAB_PADDING_BOTTOM + insets.bottom,
-          paddingTop: TAB_PADDING_TOP,
-          paddingBottom: TAB_PADDING_BOTTOM + insets.bottom,
-        },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "600", marginTop: spacing.xs },
-      }}
+      // Icon, label and press feedback are drawn by AppTabBar; each screen still
+      // supplies its own `title` and `tabBarIcon` for it to read.
+      tabBar={(props) => <AppTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
       <Tab.Screen
         name="Map"
