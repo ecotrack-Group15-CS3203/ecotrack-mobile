@@ -4,13 +4,27 @@ import { useTranslation } from "react-i18next";
 
 import { useMe } from "../modules/auth/useMe";
 import { EventsListScreen } from "../modules/event/EventsListScreen";
+import { MyReportsScreen } from "../modules/incident/MyReportsScreen";
 import { IncidentMapScreen } from "../modules/map/IncidentMapScreen";
 import { SettingsScreen } from "../modules/settings/SettingsScreen";
 import { MyTasksScreen } from "../modules/task/MyTasksScreen";
-import { colors, radii } from "../theme/colors";
-import { ReportPlaceholderScreen } from "./placeholders/ReportPlaceholderScreen";
+import { AppTabBar } from "./AppTabBar";
 
 const Tab = createBottomTabNavigator();
+
+type IconName = keyof typeof Ionicons.glyphMap;
+
+/**
+ * The active tab is drawn by the icon and label alone — a filled glyph in the brand
+ * colour against outlined grey ones — with no background block behind it. That's the
+ * "colour the active item" pattern from the navigation reference; the previous
+ * tinted rectangle behind the whole tab item looked heavy next to a five-tab bar.
+ */
+function tabIcon(active: IconName, inactive: IconName) {
+  return function TabIcon({ focused, color, size }: { focused: boolean; color: string; size: number }) {
+    return <Ionicons name={focused ? active : inactive} size={size} color={color} />;
+  };
+}
 
 export function MainTabs() {
   const { t } = useTranslation();
@@ -21,21 +35,29 @@ export function MainTabs() {
 
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarActiveBackgroundColor: colors.primaryLight,
-        tabBarItemStyle: { borderRadius: radii.sm, marginHorizontal: 6, marginVertical: 4 },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
-      }}
+      // Icon, label and press feedback are drawn by AppTabBar; each screen still
+      // supplies its own `title` and `tabBarIcon` for it to read.
+      tabBar={(props) => <AppTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
       <Tab.Screen
         name="Map"
         component={IncidentMapScreen}
         options={{
           title: t("nav.map"),
-          tabBarIcon: ({ color, size }) => <Ionicons name="location-outline" size={size} color={color} />,
+          tabBarIcon: tabIcon("location", "location-outline"),
+        }}
+      />
+      {/* A real destination — the user's own reports, with the "Report an issue"
+          action at the top. It used to be a placeholder whose tab press was
+          intercepted to open the same wizard as the map's floating button. The map
+          FAB stays (SRS §3.9.1 requires it): it makes a report, this tab tracks them. */}
+      <Tab.Screen
+        name="Report"
+        component={MyReportsScreen}
+        options={{
+          title: t("nav.report"),
+          tabBarIcon: tabIcon("document-text", "document-text-outline"),
         }}
       />
       {hasOrganisation ? (
@@ -44,33 +66,17 @@ export function MainTabs() {
           component={MyTasksScreen}
           options={{
             title: t("nav.myTasks"),
-            tabBarIcon: ({ color, size }) => <Ionicons name="checkbox-outline" size={size} color={color} />,
+            tabBarIcon: tabIcon("checkbox", "checkbox-outline"),
           }}
         />
       ) : null}
-      <Tab.Screen
-        name="Report"
-        component={ReportPlaceholderScreen}
-        options={{
-          title: t("nav.report"),
-          tabBarIcon: ({ color, size }) => <Ionicons name="add-circle-outline" size={size} color={color} />,
-        }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            // Report is a FAB, not a real tab destination: it pushes a modal
-            // on the parent stack instead of switching the active tab.
-            e.preventDefault();
-            navigation.getParent()?.navigate("ReportModal");
-          },
-        })}
-      />
       {hasOrganisation ? (
         <Tab.Screen
           name="MyEvents"
           component={EventsListScreen}
           options={{
             title: t("nav.myEvents"),
-            tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,
+            tabBarIcon: tabIcon("calendar", "calendar-outline"),
           }}
         />
       ) : null}
@@ -79,7 +85,7 @@ export function MainTabs() {
         component={SettingsScreen}
         options={{
           title: t("nav.settings"),
-          tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
+          tabBarIcon: tabIcon("person", "person-outline"),
         }}
       />
     </Tab.Navigator>

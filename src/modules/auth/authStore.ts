@@ -1,5 +1,6 @@
 import { create } from "zustand";
 
+import { useMembershipWatch } from "./membershipWatch";
 import { tokenStorage, StoredTokens } from "./tokenStorage";
 
 /**
@@ -34,6 +35,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   signOut: async () => {
     await tokenStorage.clear();
+    // A pending join request belongs to the user who submitted it — left set,
+    // it would make the next account signed in on this device poll /auth/me
+    // for a decision that was never theirs.
+    useMembershipWatch.getState().stop();
     set({ isAuthenticated: false });
   },
 }));

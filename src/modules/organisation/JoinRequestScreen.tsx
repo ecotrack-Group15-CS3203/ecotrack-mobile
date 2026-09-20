@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { Ionicons } from "@expo/vector-icons";
 
 import { Card } from "../../components/Card";
+import { ErrorBanner } from "../../components/ErrorBanner";
 import { PrimaryButton } from "../../components/PrimaryButton";
-import { colors, radii, spacing } from "../../theme/colors";
+import { colors, radii, spacing, typography } from "../../theme/colors";
 import { toApiError } from "../../services/apiError";
 import { ensureForegroundPermission, getCurrentPosition, LOCATION_RATIONALE } from "../map/locationService";
 import { useSubmitJoinRequest } from "./useOrganisations";
@@ -13,7 +15,6 @@ import { useSubmitJoinRequest } from "./useOrganisations";
 type RouteParams = { organisationId: string; organisationName: string };
 
 export function JoinRequestScreen() {
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { params } = useRoute();
   const { organisationId, organisationName } = params as RouteParams;
@@ -51,17 +52,26 @@ export function JoinRequestScreen() {
   const mutationError = submitMutation.error ? toApiError(submitMutation.error) : null;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + spacing.xl }]}>
-      <Text style={styles.title}>Join {organisationName}</Text>
-      <Card>
+    <View style={[styles.container, { paddingTop: spacing.xl }]}>
+      <View>
+        <Text style={styles.title}>Join {organisationName}</Text>
+        <Text style={styles.subtitle}>
+          An admin reviews your request — you'll be notified either way, and the app switches to your
+          volunteer view as soon as it's approved.
+        </Text>
+      </View>
+
+      <Card style={styles.consentCard}>
+        <Ionicons name="location-outline" size={18} color={colors.primary} />
         <Text style={styles.consentText}>{LOCATION_RATIONALE.joinOrganization}</Text>
       </Card>
 
       <View>
-        <Text style={styles.label}>MESSAGE (OPTIONAL)</Text>
+        <Text style={styles.label}>Message (optional)</Text>
         <TextInput
           style={styles.messageInput}
           placeholder="Tell the organization why you'd like to join"
+          placeholderTextColor={colors.textDisabled}
           value={message}
           onChangeText={setMessage}
           multiline
@@ -69,9 +79,9 @@ export function JoinRequestScreen() {
         />
       </View>
 
-      {(locationError || mutationError) && (
-        <Text style={styles.errorText}>{locationError ?? mutationError?.message}</Text>
-      )}
+      {locationError || mutationError ? (
+        <ErrorBanner message={locationError ?? mutationError?.message ?? ""} />
+      ) : null}
 
       <PrimaryButton label="Submit Request" loading={submitMutation.isPending} onPress={handleSubmit} />
     </View>
@@ -85,36 +95,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     gap: spacing.lg,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: colors.textPrimary,
+  title: typography.h1,
+  subtitle: {
+    marginTop: spacing.xs,
+    ...typography.bodySm,
+    lineHeight: 20,
+  },
+  consentCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
   },
   consentText: {
-    fontSize: 14,
+    flex: 1,
+    ...typography.bodySm,
     color: colors.textPrimary,
     lineHeight: 20,
   },
   label: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    color: colors.textMuted,
-    marginBottom: spacing.sm,
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    marginBottom: 6,
   },
   messageInput: {
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
+    borderColor: colors.borderStrong,
+    borderRadius: radii.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontSize: 14,
+    color: colors.textPrimary,
     backgroundColor: colors.surface,
-    minHeight: 90,
+    minHeight: 96,
     textAlignVertical: "top",
-  },
-  errorText: {
-    fontSize: 13,
-    color: colors.danger,
   },
 });

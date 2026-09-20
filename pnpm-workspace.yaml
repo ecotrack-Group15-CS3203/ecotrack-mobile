@@ -1,2 +1,12 @@
 allowBuilds:
   unrs-resolver: true
+
+# Same fix, same reason as ecotrack-web's pnpm-workspace.yaml: this project lives
+# on an ntfs3-mounted drive, and pnpm's default "isolated" linker (everything
+# symlinked into a content-addressed .pnpm store) is unreliable here. Metro
+# fails to resolve perfectly-present packages through the symlink chain --
+# `expo-modules-core` from `expo/src/Expo.ts`, `expo-status-bar` from App.tsx --
+# so `expo start` and `expo export` both die at the first import. A flat,
+# non-symlinked node_modules resolves reliably. Expo's own pnpm guidance
+# recommends the hoisted linker for React Native projects regardless.
+nodeLinker: hoisted

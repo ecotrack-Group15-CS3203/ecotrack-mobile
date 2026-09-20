@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { Ionicons } from "@expo/vector-icons";
 
 import { Card } from "../../components/Card";
-import { colors, radii, spacing } from "../../theme/colors";
+import { ErrorBanner } from "../../components/ErrorBanner";
+import { colors, spacing, typography } from "../../theme/colors";
 import { toApiError } from "../../services/apiError";
 import { ensureForegroundPermission, getCurrentPosition, LOCATION_RATIONALE } from "../map/locationService";
 import { PrimaryButton } from "../../components/PrimaryButton";
@@ -13,7 +15,6 @@ import { useAcceptInvite, useInviteInfo } from "./useInvite";
 type RouteParams = { token: string };
 
 export function InviteAcceptScreen() {
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { params } = useRoute();
   const { token } = params as RouteParams;
@@ -48,14 +49,14 @@ export function InviteAcceptScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (isError || !info) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + spacing.xl }]}>
+      <View style={[styles.container, { paddingTop: spacing.xl }]}>
         <Text style={styles.title}>Invite not found</Text>
         <Text style={styles.body}>This invite link doesn't exist, or the URL is incomplete.</Text>
       </View>
@@ -76,11 +77,9 @@ export function InviteAcceptScreen() {
 
   if (invalidReason) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + spacing.xl }]}>
+      <View style={[styles.container, { paddingTop: spacing.xl }]}>
         <Text style={styles.title}>{info.organisationName}</Text>
-        <Card style={styles.invalidCard}>
-          <Text style={styles.invalidText}>{invalidReason}</Text>
-        </Card>
+        <ErrorBanner message={invalidReason} />
         <Text style={styles.body}>Ask the organization for a new invite link.</Text>
       </View>
     );
@@ -89,16 +88,18 @@ export function InviteAcceptScreen() {
   const mutationError = acceptMutation.error ? toApiError(acceptMutation.error) : null;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + spacing.xl }]}>
+    <View style={[styles.container, { paddingTop: spacing.xl }]}>
       <Text style={styles.title}>Join {info.organisationName}</Text>
-      <Card>
+      <Card style={styles.consentCard}>
+        <Ionicons name="location-outline" size={18} color={colors.primary} />
         <Text style={styles.consentText}>{LOCATION_RATIONALE.joinOrganization}</Text>
       </Card>
-      {(locationError || mutationError) && (
-        <Text style={styles.errorText}>{locationError ?? mutationError?.message}</Text>
-      )}
+      {locationError || mutationError ? (
+        <ErrorBanner message={locationError ?? mutationError?.message ?? ""} />
+      ) : null}
       <PrimaryButton
         label="Confirm and join"
+        icon="checkmark-circle-outline"
         onPress={handleAccept}
         loading={acceptMutation.isPending}
       />
@@ -119,31 +120,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.background,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
+  title: typography.h1,
   body: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  consentText: {
-    fontSize: 14,
-    color: colors.textPrimary,
+    ...typography.bodySm,
     lineHeight: 20,
   },
-  invalidCard: {
-    backgroundColor: colors.primaryLight,
-    borderRadius: radii.md,
+  consentCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
   },
-  invalidText: {
-    fontSize: 15,
-    fontWeight: "600",
+  consentText: {
+    flex: 1,
+    ...typography.bodySm,
     color: colors.textPrimary,
-  },
-  errorText: {
-    fontSize: 13,
-    color: colors.danger,
+    lineHeight: 20,
   },
 });

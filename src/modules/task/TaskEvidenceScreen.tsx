@@ -5,8 +5,11 @@ import * as ImagePicker from "expo-image-picker";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Ionicons } from "@expo/vector-icons";
+
+import { ErrorBanner } from "../../components/ErrorBanner";
 import { PrimaryButton } from "../../components/PrimaryButton";
-import { colors, radii, spacing } from "../../theme/colors";
+import { colors, radii, spacing, typography } from "../../theme/colors";
 import { compressImage, uploadTaskEvidencePhoto } from "../../services/mediaUpload";
 import { toApiError } from "../../services/apiError";
 import { useAddTaskPhotos } from "./useTasks";
@@ -61,7 +64,12 @@ export function TaskEvidenceScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + spacing.md }]}>
-      <Text style={styles.title}>Add Evidence Photo</Text>
+      <View style={styles.header}>
+        <Pressable onPress={() => navigation.goBack()} style={styles.backButton} accessibilityRole="button">
+          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
+        </Pressable>
+        <Text style={styles.title}>Add Evidence Photo</Text>
+      </View>
 
       <View style={styles.preview}>
         {photoUri ? (
@@ -69,32 +77,44 @@ export function TaskEvidenceScreen() {
         ) : permission?.granted ? (
           <CameraView ref={cameraRef} style={styles.previewImage} facing="back" />
         ) : (
-          <Pressable style={styles.permissionPrompt} onPress={requestPermission}>
+          <Pressable style={styles.permissionPrompt} onPress={requestPermission} accessibilityRole="button">
+            <Ionicons name="camera-outline" size={28} color={colors.textMuted} />
             <Text style={styles.permissionLabel}>Tap to allow camera access</Text>
           </Pressable>
         )}
         {isProcessing ? (
           <View style={styles.processingOverlay}>
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={colors.onPrimary} />
           </View>
         ) : null}
       </View>
 
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? <ErrorBanner message={error} /> : null}
 
       {photoUri ? (
         <View style={styles.row}>
-          <Pressable style={styles.retakeButton} onPress={() => setPhotoUri(null)} disabled={isProcessing}>
-            <Text style={styles.retakeLabel}>Retake</Text>
-          </Pressable>
+          <PrimaryButton
+            label="Retake"
+            variant="secondary"
+            icon="refresh-outline"
+            disabled={isProcessing}
+            onPress={() => setPhotoUri(null)}
+          />
           <View style={styles.uploadButtonFlex}>
-            <PrimaryButton label="Upload" loading={isProcessing} onPress={handleUpload} />
+            <PrimaryButton
+              label="Upload"
+              icon="cloud-upload-outline"
+              loading={isProcessing}
+              onPress={handleUpload}
+            />
           </View>
         </View>
       ) : (
         <View style={styles.row}>
-          <Pressable
-            style={styles.captureButton}
+          <PrimaryButton
+            label="Capture"
+            icon="camera-outline"
+            style={styles.rowButton}
             disabled={!permission?.granted || isProcessing}
             onPress={async () => {
               if (!cameraRef.current) return;
@@ -106,12 +126,15 @@ export function TaskEvidenceScreen() {
                 setIsProcessing(false);
               }
             }}
-          >
-            <Text style={styles.captureLabel}>Capture Photo</Text>
-          </Pressable>
-          <Pressable style={styles.galleryButton} onPress={handlePickFromGallery} disabled={isProcessing}>
-            <Text style={styles.galleryLabel}>Choose from Gallery</Text>
-          </Pressable>
+          />
+          <PrimaryButton
+            label="Gallery"
+            variant="secondary"
+            icon="images-outline"
+            style={styles.rowButton}
+            onPress={handlePickFromGallery}
+            disabled={isProcessing}
+          />
         </View>
       )}
     </View>
@@ -125,16 +148,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     gap: spacing.md,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
   },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: typography.h2,
   preview: {
     height: 320,
     borderRadius: radii.md,
     overflow: "hidden",
-    backgroundColor: "#EAEAE2",
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceMuted,
   },
   previewImage: {
     flex: 1,
@@ -143,11 +177,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    gap: spacing.sm,
   },
   permissionLabel: {
-    fontSize: 13,
+    ...typography.bodySm,
     fontWeight: "600",
-    color: colors.textSecondary,
   },
   processingOverlay: {
     position: "absolute",
@@ -155,55 +189,17 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: colors.scrim,
     alignItems: "center",
     justifyContent: "center",
-  },
-  errorText: {
-    fontSize: 13,
-    color: colors.danger,
   },
   row: {
     flexDirection: "row",
     gap: spacing.sm,
   },
-  captureButton: {
+  rowButton: {
     flex: 1,
-    backgroundColor: colors.primary,
-    borderRadius: radii.md,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  captureLabel: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  galleryButton: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  galleryLabel: {
-    color: colors.textPrimary,
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  retakeButton: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    paddingVertical: 16,
-    paddingHorizontal: spacing.lg,
-    justifyContent: "center",
-  },
-  retakeLabel: {
-    color: colors.textPrimary,
-    fontWeight: "700",
+    paddingHorizontal: spacing.sm,
   },
   uploadButtonFlex: {
     flex: 1,

@@ -6,14 +6,16 @@ import type { EventStatus } from "../../types/api";
 
 const PAGE_SIZE = 20;
 
-export function useEvents(status?: EventStatus) {
+/** `enabled` lets a screen call this once per status it might show and only fetch
+ * the ones on screen — hooks can't be called conditionally. */
+export function useEvents(status?: EventStatus, enabled = true) {
   const { data: me } = useMe();
   const organisationId = me?.organisation?.id;
 
   return useQuery({
     queryKey: ["events", "list", organisationId, status],
     queryFn: () => eventsApi.getForOrganisation(organisationId!, status, 1, PAGE_SIZE),
-    enabled: !!organisationId,
+    enabled: !!organisationId && enabled,
   });
 }
 

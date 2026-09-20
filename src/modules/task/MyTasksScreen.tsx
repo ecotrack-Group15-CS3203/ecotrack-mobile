@@ -1,49 +1,61 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 
+import { Badge } from "../../components/Badge";
 import { Card } from "../../components/Card";
-import { Chip } from "../../components/Chip";
+import { EmptyState } from "../../components/EmptyState";
+import { ErrorBanner } from "../../components/ErrorBanner";
+import { MetaRow } from "../../components/MetaRow";
 import { PrimaryButton } from "../../components/PrimaryButton";
-import { colors, spacing } from "../../theme/colors";
+import { ScreenHeader } from "../../components/ScreenHeader";
+import { Segmented } from "../../components/Segmented";
+import { colors, spacing, typography } from "../../theme/colors";
+import { statusTone, tones, urgencyTone } from "../../theme/tones";
 import { toApiError } from "../../services/apiError";
 import { useMe } from "../auth/useMe";
-import { taskStatusLabel } from "./taskLabels";
+import type { TaskView } from "./api/tasks.api";
+import { taskStatusKey, taskStatusTone } from "./taskLabels";
 import { useMyTasks } from "./useTasks";
 
-const FILTERS = ["All", "Assigned", "In Progress", "Completed"] as const;
-type Filter = (typeof FILTERS)[number];
+/**
+ * The three views that partition a volunteer's work, matching what the API's
+ * `?view=` returns (SRS §3.1.8): `assigned` is accepted-or-awaiting and not yet
+ * started, `in_progress` and `completed` are accepted tasks at that stage.
+ */
+const VIEWS: TaskView[] = ["assigned", "in_progress", "completed"];
 
 export function MyTasksScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { data: me } = useMe();
-  const [filter, setFilter] = useState<Filter>("All");
+  const [view, setView] = useState<TaskView>("assigned");
 
-  const { data, isLoading, isError, error, refetch, isRefetching } = useMyTasks();
+  // The view is passed to the server. This screen used to call useMyTasks() with no
+  // view — which the API answers with `assigned` only — and then filtered that list
+  // client-side for "In Progress"/"Completed", so those chips were permanently empty.
+  const { data, isLoading, isError, error, refetch, isRefetching } = useMyTasks(view);
   const tasks = data?.items ?? [];
-
-  const visibleTasks = useMemo(() => {
-    if (filter === "All") return tasks;
-    if (filter === "Assigned") {
-      return tasks.filter((task) =>
-        task.assignments.some((a) => a.status === "assigned" || a.status === "accepted"),
-      );
-    }
-    if (filter === "In Progress") return tasks.filter((task) => task.status === "in_progress");
-    return tasks.filter((task) => task.status === "completed");
-  }, [tasks, filter]);
 
   if (!me?.organisation) {
     return (
-      <View style={[styles.centered, { paddingTop: insets.top, gap: spacing.md }]}>
-        <Text style={styles.emptyText}>Join an organization to be assigned cleanup tasks.</Text>
-        <PrimaryButton
-          label="Find an Organization"
-          onPress={() =>
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (navigation as any).navigate("OrganisationDirectory")
+      <View style={[styles.centered, { paddingTop: insets.top }]}>
+        <EmptyState
+          icon="people-outline"
+          title={t("tasks.empty.noOrgTitle")}
+          message={t("tasks.empty.noOrgBody")}
+          action={
+            <PrimaryButton
+              label={t("tasks.empty.findOrg")}
+              onPress={() =>
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (navigation as any).navigate("OrganisationDirectory")
+              }
+            />
           }
         />
       </View>
@@ -53,62 +65,85 @@ export function MyTasksScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (isError) {
     return (
-      <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <Text style={styles.errorText}>{toApiError(error).message}</Text>
+      <View style={[styles.centered, styles.errorWrap, { paddingTop: insets.top + spacing.xl }]}>
+        <ErrorBanner message={toApiError(error).message} />
       </View>
     );
   }
+
+  const now = Date.now();
 
   return (
     <FlatList
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
-      data={visibleTasks}
+      data={tasks}
       keyExtractor={(task) => task.id}
       refreshing={isRefetching}
       onRefresh={refetch}
       ListHeaderComponent={
         <>
-          <Text style={styles.title}>My Tasks</Text>
-          <Text style={styles.subtitle}>Assignments from your organization</Text>
-          <View style={styles.filterRow}>
-            {FILTERS.map((option) => (
-              <Chip key={option} label={option} selected={option === filter} onPress={() => setFilter(option)} />
-            ))}
-          </View>
+          <ScreenHeader title={t("tasks.title")} subtitle={t("tasks.subtitle", { org: me.organisation.name })} />
+          <Segmented
+            options={VIEWS.map((value) => ({ value, label: t(`tasks.views.${value}`) }))}
+            value={view}
+            onChange={setView}
+            accessibilityLabel={t("tasks.title")}
+            style={styles.segmented}
+          />
         </>
       }
       ListEmptyComponent={
-        <View style={styles.centered}>
-          <Text style={styles.emptyText}>No tasks here.</Text>
-        </View>
+        <EmptyState
+          icon="checkbox-outline"
+          title={t(`tasks.empty.${view}Title`)}
+          message={t(`tasks.empty.${view}Body`)}
+        />
       }
-      renderItem={({ item }) => (
-        <Pressable
-          onPress={() =>
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (navigation as any).navigate("TaskDetail", { taskId: item.id })
-          }
-        >
-          <Card style={styles.taskCard}>
-            <View style={styles.taskHeader}>
-              <Text style={styles.taskTitle} numberOfLines={1}>
+      renderItem={({ item }) => {
+        const overdue = item.status !== "completed" && new Date(item.dueDate).getTime() < now;
+        const due = new Date(item.dueDate).toLocaleDateString();
+        return (
+          <Pressable
+            onPress={() =>
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (navigation as any).navigate("TaskDetail", { taskId: item.id })
+            }
+            accessibilityRole="button"
+          >
+            <Card style={styles.taskCard}>
+              <View style={styles.badgeRow}>
+                <Badge
+                  label={t(taskStatusKey(item, me.id))}
+                  tone={statusTone(taskStatusTone(item, me.id))}
+                />
+                <Badge label={t(`tasks.priority.${item.priority}`)} tone={urgencyTone(item.priority)} />
+              </View>
+              <Text style={styles.taskTitle} numberOfLines={2}>
                 {item.title}
               </Text>
-              <Text style={styles.taskStatus}>{taskStatusLabel(item)}</Text>
-            </View>
-            {item.description ? <Text style={styles.taskDescription}>{item.description}</Text> : null}
-            <Text style={styles.taskDue}>Due {new Date(item.dueDate).toLocaleDateString()}</Text>
-          </Card>
-        </Pressable>
-      )}
+              {item.description ? (
+                <Text style={styles.taskDescription} numberOfLines={2}>
+                  {item.description}
+                </Text>
+              ) : null}
+              <MetaRow
+                icon="time-outline"
+                text={overdue ? t("tasks.card.overdue", { date: due }) : t("tasks.card.due", { date: due })}
+                tone={overdue ? tones.rejected : undefined}
+                trailing={<Ionicons name="chevron-forward" size={16} color={colors.textMuted} />}
+              />
+            </Card>
+          </Pressable>
+        );
+      }}
       ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
     />
   );
@@ -129,62 +164,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: spacing.lg,
+    backgroundColor: colors.background,
   },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textMuted,
-    textAlign: "center",
+  errorWrap: {
+    justifyContent: "flex-start",
   },
-  errorText: {
-    fontSize: 14,
-    color: colors.danger,
-    textAlign: "center",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    marginTop: 2,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  filterRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-    marginTop: spacing.md,
+  segmented: {
     marginBottom: spacing.lg,
   },
   taskCard: {
-    gap: 4,
+    gap: spacing.sm,
   },
-  taskHeader: {
+  badgeRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    flexWrap: "wrap",
     gap: spacing.sm,
   },
   taskTitle: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  taskStatus: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    color: colors.textMuted,
+    ...typography.h3,
+    fontSize: 16,
   },
   taskDescription: {
-    fontSize: 13,
+    ...typography.meta,
     color: colors.textSecondary,
-  },
-  taskDue: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 4,
+    lineHeight: 19,
   },
 });

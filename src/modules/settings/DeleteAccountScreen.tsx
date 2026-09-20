@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { Ionicons } from "@expo/vector-icons";
 
 import { Card } from "../../components/Card";
+import { ErrorBanner } from "../../components/ErrorBanner";
 import { PrimaryButton } from "../../components/PrimaryButton";
-import { colors, spacing } from "../../theme/colors";
+import { colors, radii, spacing, typography } from "../../theme/colors";
 import { toApiError } from "../../services/apiError";
 import { authApi } from "../auth/api/auth.api";
 import { useAuthStore } from "../auth/authStore";
@@ -12,7 +14,6 @@ import { useAuthStore } from "../auth/authStore";
 const CONFIRM_PHRASE = "DELETE";
 
 export function DeleteAccountScreen() {
-  const insets = useSafeAreaInsets();
   const signOut = useAuthStore((state) => state.signOut);
 
   const [confirmText, setConfirmText] = useState("");
@@ -37,11 +38,10 @@ export function DeleteAccountScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg }]}
+      contentContainerStyle={[styles.content, { paddingTop: spacing.lg }]}
     >
-      <Text style={styles.title}>Delete Account</Text>
-
       <Card style={styles.warningCard}>
+        <Ionicons name="warning-outline" size={18} color={colors.danger} />
         <Text style={styles.warningText}>
           This permanently deletes your EcoTrack account. Your past reports and completed tasks stay on
           record (SRS §3.11.1), but your profile, saved settings, and any pending assignments or RSVPs
@@ -62,13 +62,15 @@ export function DeleteAccountScreen() {
           onChangeText={setConfirmText}
           autoCapitalize="characters"
           placeholder={CONFIRM_PHRASE}
+          placeholderTextColor={colors.textDisabled}
         />
       </View>
 
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? <ErrorBanner message={error} /> : null}
 
       <PrimaryButton
         label="Permanently Delete My Account"
+        variant="destructive"
         disabled={confirmText !== CONFIRM_PHRASE || isDeleting}
         loading={isDeleting}
         onPress={handleDelete}
@@ -87,42 +89,38 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     gap: spacing.lg,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
   warningCard: {
-    backgroundColor: "#FDECEA",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+    backgroundColor: colors.dangerTint,
+    borderColor: colors.danger,
   },
   warningText: {
-    fontSize: 14,
+    flex: 1,
+    ...typography.bodySm,
     color: colors.danger,
     lineHeight: 20,
   },
   note: {
-    fontSize: 13,
+    ...typography.meta,
     color: colors.textSecondary,
-    lineHeight: 18,
+    lineHeight: 19,
   },
   label: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    color: colors.textMuted,
-    marginBottom: spacing.sm,
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    marginBottom: 6,
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
+    borderColor: colors.borderStrong,
+    borderRadius: radii.sm,
     paddingHorizontal: spacing.md,
-    paddingVertical: 10,
+    paddingVertical: 11,
     fontSize: 14,
+    color: colors.textPrimary,
     backgroundColor: colors.surface,
-  },
-  errorText: {
-    fontSize: 13,
-    color: colors.danger,
   },
 });

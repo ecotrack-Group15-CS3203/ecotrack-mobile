@@ -1,7 +1,20 @@
 import { apiClient } from "../../../services/apiClient";
 import type { IncidentDetail, MyIncident, NearbyIncident, Paginated } from "../../../types/api";
 
+export interface CreateIncidentPayload {
+  title: string;
+  description: string;
+  location: { lat: number; lng: number };
+  urgency: "low" | "medium" | "high" | "critical";
+  mediaUrls: string[];
+}
+
 export const incidentsApi = {
+  async create(payload: CreateIncidentPayload): Promise<{ id: string }> {
+    const { data } = await apiClient.post<{ id: string }>("/incidents", payload);
+    return data;
+  },
+
   async getNearby(lat: number, lng: number, radiusMeters: number): Promise<NearbyIncident[]> {
     const { data } = await apiClient.get<NearbyIncident[]>("/incidents/nearby", {
       params: { lat, lng, radius: radiusMeters },

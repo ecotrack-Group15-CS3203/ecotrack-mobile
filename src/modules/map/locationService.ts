@@ -2,6 +2,11 @@ import * as Location from "expo-location";
 
 export type Coordinate = { latitude: number; longitude: number };
 
+/** Central Colombo — where a map opens when the device gives no position at all
+ * (permission denied, or no fix yet). Shared so the report wizard and the map
+ * fall back to the same place. */
+export const DEFAULT_MAP_CENTER: Coordinate = { latitude: 6.9271, longitude: 79.8612 };
+
 /**
  * "When in use" is a single OS-level grant - once given from any trigger, every
  * later call succeeds without re-prompting. What differs per feature is the copy
@@ -39,16 +44,47 @@ export type PositionFix = {
   accuracyMeters: number | null;
 };
 
+function toFix(position: Location.LocationObject): PositionFix {
+  return {
+    coordinate: {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    },
+    accuracyMeters: position.coords.accuracy,
+  };
+}
+
 export async function getCurrentPosition(): Promise<PositionFix | null> {
   try {
-    const position = await Location.getCurrentPositionAsync();
-    return {
-      coordinate: {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      },
-      accuracyMeters: position.coords.accuracy,
-    };
+    return toFix(await Location.getCurrentPositionAsync());
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The OS's cached position, if it is recent enough to be worth showing — returns
+ * immediately, unlike a live fix. A stale-but-close pin the user can adjust is far
+ * better than a disabled button while the GPS chip cold-starts, which can take
+ * 5-30 s indoors.
+ */
+export async function getLastKnownFix(maxAgeMs = 10 * 60_000): Promise<PositionFix | null> {
+  try {
+    const position = await Location.getLastKnownPositionAsync({ maxAge: maxAgeMs });
+    return position ? toFix(position) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A live fix at balanced accuracy (wifi/cell-assisted, typically a few seconds,
+ * tens of metres) rather than the default high-accuracy GPS-only request. Report
+ * pins are draggable, so "close, now" beats "exact, eventually".
+ */
+export async function getBalancedFix(): Promise<PositionFix | null> {
+  try {
+    return toFix(await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
   } catch {
     return null;
   }

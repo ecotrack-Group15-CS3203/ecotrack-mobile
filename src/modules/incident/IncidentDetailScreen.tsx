@@ -1,18 +1,22 @@
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRoute } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 
 import { Badge } from "../../components/Badge";
 import { Card } from "../../components/Card";
-import { colors, spacing } from "../../theme/colors";
+import { ErrorBanner } from "../../components/ErrorBanner";
+import { SectionLabel } from "../../components/SectionLabel";
+import { colors, radii, spacing, typography } from "../../theme/colors";
+import { statusTone, tones, urgencyTone } from "../../theme/tones";
 import { toApiError } from "../../services/apiError";
-import { CATEGORY_LABEL, SEVERITY_LABEL } from "./incidentLabels";
+import { categoryKey, severityKey } from "./incidentLabels";
 import { useIncidentDetail } from "./useIncidents";
 
 type RouteParams = { incidentId: string };
 
 export function IncidentDetailScreen() {
-  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { params } = useRoute();
   const { incidentId } = params as RouteParams;
 
@@ -21,15 +25,15 @@ export function IncidentDetailScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (isError || !incident) {
     return (
-      <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <Text style={styles.errorText}>{toApiError(error).message}</Text>
+      <View style={[styles.container, styles.errorWrap, { paddingTop: spacing.xl }]}>
+        <ErrorBanner message={toApiError(error).message} />
       </View>
     );
   }
@@ -39,7 +43,7 @@ export function IncidentDetailScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
+      contentContainerStyle={[styles.content, { paddingTop: spacing.md }]}
     >
       {incident.images.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageRow}>
@@ -52,36 +56,34 @@ export function IncidentDetailScreen() {
       <Text style={styles.title}>{incident.title}</Text>
 
       <View style={styles.badgeRow}>
-        <Badge
-          label={SEVERITY_LABEL[incident.severity]}
-          backgroundColor={colors.urgency[incident.severity]}
-          textColor="#FFFFFF"
-        />
-        <Badge label={CATEGORY_LABEL[incident.category]} />
+        <Badge label={t(severityKey(incident.severity))} tone={urgencyTone(incident.severity)} />
+        <Badge label={t(categoryKey(incident.category))} tone={tones.neutral} dot={false} />
         <Badge
           label={claimed ? "Claimed" : "Awaiting claim"}
-          backgroundColor={claimed ? colors.primaryLight : colors.chipBackground}
-          textColor={claimed ? colors.primary : colors.chipText}
+          tone={claimed ? statusTone("verified") : tones.pending}
         />
       </View>
 
-      <Card>
-        <Text style={styles.sectionLabel}>DESCRIPTION</Text>
+      <Card style={styles.section}>
+        <SectionLabel label="Description" />
         <Text style={styles.description}>{incident.description || "No description provided."}</Text>
       </Card>
 
       {incident.address ? (
-        <Card>
-          <Text style={styles.sectionLabel}>LOCATION</Text>
+        <Card style={styles.section}>
+          <SectionLabel label="Location" />
           <Text style={styles.description}>{incident.address}</Text>
         </Card>
       ) : null}
 
       {incident.visibility === "public" ? (
-        <Text style={styles.publicNote}>
-          You're viewing a summary of this report — full details are only visible to the organization
-          handling it.
-        </Text>
+        <View style={styles.publicNote}>
+          <Ionicons name="eye-off-outline" size={15} color={colors.textMuted} />
+          <Text style={styles.publicNoteText}>
+            You're viewing a summary of this report — full details are only visible to the organization
+            handling it.
+          </Text>
+        </View>
       ) : null}
     </ScrollView>
   );
@@ -103,10 +105,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.background,
   },
-  errorText: {
-    fontSize: 14,
-    color: colors.danger,
-    textAlign: "center",
+  errorWrap: {
     paddingHorizontal: spacing.lg,
   },
   imageRow: {
@@ -114,37 +113,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   image: {
-    width: 220,
-    height: 160,
-    borderRadius: 12,
+    width: 240,
+    height: 170,
+    borderRadius: radii.md,
     marginRight: spacing.sm,
-    backgroundColor: colors.chipBackground,
+    backgroundColor: colors.surfaceMuted,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
+  title: typography.h2,
   badgeRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm,
   },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    color: colors.textMuted,
-    marginBottom: spacing.xs,
+  section: {
+    gap: spacing.sm,
   },
   description: {
-    fontSize: 14,
+    ...typography.bodySm,
     color: colors.textPrimary,
     lineHeight: 20,
   },
   publicNote: {
-    fontSize: 12,
-    color: colors.textMuted,
-    fontStyle: "italic",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radii.sm,
+    padding: spacing.md,
+  },
+  publicNoteText: {
+    flex: 1,
+    ...typography.meta,
+    lineHeight: 18,
   },
 });
