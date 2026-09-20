@@ -1,30 +1,31 @@
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Badge } from "../../components/Badge";
 import { Card } from "../../components/Card";
-import { colors, spacing } from "../../theme/colors";
+import { EmptyState } from "../../components/EmptyState";
+import { ErrorBanner } from "../../components/ErrorBanner";
+import { colors, spacing, typography } from "../../theme/colors";
+import { statusTone, tones, urgencyTone, type Tone } from "../../theme/tones";
 import { toApiError } from "../../services/apiError";
 import type { MyIncident } from "../../types/api";
 import { CATEGORY_LABEL, SEVERITY_LABEL } from "./incidentLabels";
 import { useMyReports } from "./useMyReports";
 
-function statusFor(report: MyIncident): { label: string; bg: string; fg: string } {
+function statusFor(report: MyIncident): { label: string; tone: Tone } {
   if (report.verificationStatus === "rejected") {
-    return { label: "Rejected", bg: colors.chipBackground, fg: colors.danger };
+    return { label: "Rejected", tone: statusTone("rejected") };
   }
   if (report.verificationStatus === "duplicate") {
-    return { label: "Duplicate", bg: colors.chipBackground, fg: colors.textMuted };
+    return { label: "Duplicate", tone: statusTone("duplicate") };
   }
   if (report.organisationId) {
-    return { label: "Claimed", bg: colors.primaryLight, fg: colors.primary };
+    return { label: "Claimed", tone: statusTone("verified") };
   }
-  return { label: "Awaiting claim", bg: colors.chipBackground, fg: colors.chipText };
+  return { label: "Awaiting claim", tone: tones.pending };
 }
 
 export function MyReportsScreen() {
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { data, isLoading, isError, error, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
     useMyReports();
@@ -34,15 +35,15 @@ export function MyReportsScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (isError) {
     return (
-      <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <Text style={styles.errorText}>{toApiError(error).message}</Text>
+      <View style={[styles.container, styles.errorWrap, { paddingTop: spacing.xl }]}>
+        <ErrorBanner message={toApiError(error).message} />
       </View>
     );
   }
@@ -50,7 +51,7 @@ export function MyReportsScreen() {
   return (
     <FlatList
       style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
+      contentContainerStyle={[styles.content, { paddingTop: spacing.md }]}
       data={reports}
       keyExtractor={(item) => item.id}
       refreshing={isRefetching}
@@ -59,12 +60,21 @@ export function MyReportsScreen() {
       onEndReached={() => {
         if (hasNextPage && !isFetchingNextPage) fetchNextPage();
       }}
-      ListEmptyComponent={
-        <View style={styles.centered}>
-          <Text style={styles.emptyText}>You haven't reported anything yet.</Text>
-        </View>
+      ListHeaderComponent={
+        reports.length > 0 ? (
+          <Text style={styles.listIntro}>Everything you've reported, and where it got to.</Text>
+        ) : null
       }
-      ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={styles.footerSpinner} /> : null}
+      ListEmptyComponent={
+        <EmptyState
+          icon="document-text-outline"
+          title="No reports yet"
+          message="Anything you report from the map shows up here, with its review status."
+        />
+      }
+      ListFooterComponent={
+        isFetchingNextPage ? <ActivityIndicator style={styles.footerSpinner} color={colors.primary} /> : null
+      }
       renderItem={({ item }) => {
         const status = statusFor(item);
         return (
@@ -79,13 +89,9 @@ export function MyReportsScreen() {
                 {item.title}
               </Text>
               <View style={styles.badgeRow}>
-                <Badge
-                  label={SEVERITY_LABEL[item.severity]}
-                  backgroundColor={colors.urgency[item.severity]}
-                  textColor="#FFFFFF"
-                />
-                <Badge label={CATEGORY_LABEL[item.category]} />
-                <Badge label={status.label} backgroundColor={status.bg} textColor={status.fg} />
+                <Badge label={SEVERITY_LABEL[item.severity]} tone={urgencyTone(item.severity)} />
+                <Badge label={CATEGORY_LABEL[item.category]} tone={tones.neutral} dot={false} />
+                <Badge label={status.label} tone={status.tone} />
               </View>
               <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
             </Card>
@@ -111,24 +117,21 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: colors.background,
   },
-  errorText: {
-    fontSize: 14,
-    color: colors.danger,
-    textAlign: "center",
+  errorWrap: {
     paddingHorizontal: spacing.lg,
   },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textMuted,
+  listIntro: {
+    ...typography.bodySm,
+    marginBottom: spacing.xs,
   },
   card: {
     gap: spacing.sm,
   },
   title: {
+    ...typography.h3,
     fontSize: 15,
-    fontWeight: "700",
-    color: colors.textPrimary,
   },
   badgeRow: {
     flexDirection: "row",
@@ -136,8 +139,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   date: {
+    ...typography.meta,
     fontSize: 12,
-    color: colors.textMuted,
   },
   footerSpinner: {
     marginVertical: spacing.md,

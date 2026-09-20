@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { colors, spacing } from "../../../theme/colors";
+import { colors, radii, spacing, typography } from "../../../theme/colors";
 import { useIncidentStore } from "../incidentStore";
 import { Step1Photo } from "./Step1Photo";
 import { Coordinate, Step2Location } from "./Step2Location";
@@ -46,12 +46,25 @@ export function ReportWizardScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top + spacing.md }]}>
       <View style={styles.header}>
-        <Pressable onPress={goBack} style={styles.backButton}>
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle}>
-          {STEP_TITLES[step]} · Step {step} of 3
-        </Text>
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle}>{STEP_TITLES[step]}</Text>
+          <Text style={styles.headerStep}>Step {step} of 3</Text>
+        </View>
+      </View>
+
+      {/* Three segments rather than a percentage bar: the wizard has exactly
+          three steps, and showing them as discrete makes "one more after this"
+          readable at a glance. */}
+      <View style={styles.progress} accessibilityRole="progressbar">
+        {[1, 2, 3].map((segment) => (
+          <View
+            key={segment}
+            style={[styles.progressSegment, segment <= step && styles.progressSegmentActive]}
+          />
+        ))}
       </View>
 
       {step === 1 ? <Step1Photo photoUri={photoUri} onCapture={setPhotoUri} onNext={() => setStep(2)} /> : null}
@@ -86,20 +99,38 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
+    gap: spacing.md,
   },
   backButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F0F0EA",
+    borderRadius: radii.pill,
+    backgroundColor: colors.surfaceMuted,
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: colors.textPrimary,
+  headerText: {
+    flex: 1,
+  },
+  headerTitle: typography.h3,
+  headerStep: {
+    ...typography.meta,
+    fontSize: 12,
+    marginTop: 1,
+  },
+  progress: {
+    flexDirection: "row",
+    gap: spacing.xs,
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  progressSegment: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.surfaceMuted,
+  },
+  progressSegmentActive: {
+    backgroundColor: colors.primary,
   },
 });

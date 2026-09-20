@@ -3,7 +3,10 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import * as Location from "expo-location";
 import { Camera, MapView, PointAnnotation } from "@rnmapbox/maps";
 
-import { colors, radii, spacing } from "../../../theme/colors";
+import { Ionicons } from "@expo/vector-icons";
+
+import { PrimaryButton } from "../../../components/PrimaryButton";
+import { colors, radii, spacing, typography } from "../../../theme/colors";
 
 export type Coordinate = { latitude: number; longitude: number };
 
@@ -38,12 +41,13 @@ export function Step2Location({ coordinate, onCoordinateChange, onNext }: Props)
     <View style={styles.container}>
       <View style={styles.mapWrapper}>
         {!permission?.granted ? (
-          <Pressable style={styles.permissionPrompt} onPress={requestPermission}>
+          <Pressable style={styles.permissionPrompt} onPress={requestPermission} accessibilityRole="button">
+            <Ionicons name="location-outline" size={28} color={colors.textMuted} />
             <Text style={styles.permissionLabel}>Tap to allow location access</Text>
           </Pressable>
         ) : isLocating || !coordinate ? (
           <View style={styles.permissionPrompt}>
-            <ActivityIndicator />
+            <ActivityIndicator color={colors.primary} />
           </View>
         ) : (
           <MapView style={styles.map} scaleBarEnabled={false}>
@@ -70,13 +74,21 @@ export function Step2Location({ coordinate, onCoordinateChange, onNext }: Props)
         )}
       </View>
 
-      <Text style={styles.caption}>
-        {error ?? (accuracy ? `GPS accuracy: ±${Math.round(accuracy)} m · drag pin to refine location` : "Drag the pin to refine your location")}
-      </Text>
+      <View style={styles.captionRow}>
+        <Ionicons
+          name={error ? "alert-circle-outline" : "information-circle-outline"}
+          size={15}
+          color={error ? colors.danger : colors.textMuted}
+        />
+        <Text style={[styles.caption, !!error && styles.captionError]}>
+          {error ??
+            (accuracy
+              ? `GPS accuracy: ±${Math.round(accuracy)} m · drag pin to refine location`
+              : "Drag the pin to refine your location")}
+        </Text>
+      </View>
 
-      <Pressable style={[styles.nextButton, !coordinate && styles.nextButtonDisabled]} onPress={onNext} disabled={!coordinate}>
-        <Text style={styles.nextLabel}>Next</Text>
-      </Pressable>
+      <PrimaryButton label="Next" onPress={onNext} disabled={!coordinate} />
     </View>
   );
 }
@@ -86,10 +98,12 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   mapWrapper: {
-    height: 260,
+    height: 280,
     borderRadius: radii.md,
     overflow: "hidden",
-    backgroundColor: "#E4EFE6",
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceMuted,
   },
   map: {
     flex: 1,
@@ -98,17 +112,19 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: spacing.lg,
   },
   permissionLabel: {
-    fontSize: 13,
+    ...typography.bodySm,
     fontWeight: "600",
-    color: colors.textSecondary,
+    marginTop: spacing.sm,
   },
   pinOuter: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "rgba(31,122,76,0.25)",
+    // The brand teal at low alpha — the halo around the draggable pin.
+    backgroundColor: "rgba(15,118,110,0.22)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -118,24 +134,20 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: colors.primary,
     borderWidth: 2,
-    borderColor: "#FFFFFF",
+    borderColor: colors.surface,
+  },
+  captionRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
   },
   caption: {
+    flex: 1,
+    ...typography.meta,
     fontSize: 12,
-    color: colors.textSecondary,
+    lineHeight: 17,
   },
-  nextButton: {
-    backgroundColor: colors.primary,
-    borderRadius: radii.lg,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  nextButtonDisabled: {
-    backgroundColor: colors.chipBackground,
-  },
-  nextLabel: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 15,
+  captionError: {
+    color: colors.danger,
   },
 });

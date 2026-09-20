@@ -6,9 +6,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Card } from "../../components/Card";
 import { Chip } from "../../components/Chip";
+import { ErrorBanner } from "../../components/ErrorBanner";
+import { PrimaryButton } from "../../components/PrimaryButton";
+import { ScreenHeader } from "../../components/ScreenHeader";
+import { SectionLabel } from "../../components/SectionLabel";
+import { useMembershipWatch } from "../auth/membershipWatch";
 import { useMe, useUpdateProfile } from "../auth/useMe";
 import { useAsgardeoAuth } from "../auth/useAsgardeoAuth";
-import { colors, radii, spacing } from "../../theme/colors";
+import { colors, radii, spacing, typography } from "../../theme/colors";
 import { toApiError } from "../../services/apiError";
 import { ensureForegroundPermission, getCurrentPosition, LOCATION_RATIONALE } from "../map/locationService";
 import type { IncidentSeverity } from "../../types/api";
@@ -34,6 +39,9 @@ export function SettingsScreen() {
   const { data: me } = useMe();
   const { signOut } = useAsgardeoAuth();
   const updateProfileMutation = useUpdateProfile();
+  // Set when a join request is submitted, cleared once the membership lands —
+  // the same flag that makes useMe() poll while a decision is outstanding.
+  const awaitingMembership = useMembershipWatch((state) => state.awaitingSince) !== null;
 
   const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -76,13 +84,13 @@ export function SettingsScreen() {
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
     >
-      <Text style={styles.title}>Profile</Text>
+      <ScreenHeader title="Profile" style={styles.header} />
 
-      <View style={styles.identityRow}>
+      <Card style={styles.identityCard}>
         <View style={styles.avatar}>
           <Text style={styles.avatarLabel}>{initial}</Text>
         </View>
-        <View>
+        <View style={styles.identityText}>
           <Text style={styles.name} numberOfLines={1}>
             {displayName}
           </Text>
@@ -90,7 +98,7 @@ export function SettingsScreen() {
             {email}
           </Text>
         </View>
-      </View>
+      </Card>
 
       <Pressable
         onPress={() =>
@@ -99,6 +107,9 @@ export function SettingsScreen() {
         }
       >
         <Card style={styles.linkRow}>
+          <View style={styles.linkIcon}>
+            <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+          </View>
           <Text style={styles.linkLabel}>My Reports</Text>
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </Card>
@@ -112,23 +123,45 @@ export function SettingsScreen() {
           }
         >
           <Card style={styles.linkRow}>
+            <View style={styles.linkIcon}>
+              <Ionicons name="people-outline" size={18} color={colors.primary} />
+            </View>
             <Text style={styles.linkLabel}>Find an Organization</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </Card>
         </Pressable>
       ) : null}
 
-      {me?.organisation ? (
-        <Card>
-          <Text style={styles.cardLabel}>ORGANIZATION</Text>
-          <Text style={styles.orgName}>{me.organisation.name}</Text>
+      {/* Until the decision lands there is nothing in `me` to show for a
+          submitted request, so this is the only acknowledgement the user gets
+          that it's still open — and it disappears by itself the moment the
+          approval arrives and the volunteer tabs appear. */}
+      {!me?.organisation && awaitingMembership ? (
+        <Card style={styles.pendingCard}>
+          <View style={styles.pendingHeader}>
+            <Ionicons name="hourglass-outline" size={17} color={colors.status.pending} />
+            <Text style={styles.pendingTitle}>Join request pending</Text>
+          </View>
+          <Text style={styles.pendingBody}>
+            An organization admin still has to approve it. You'll be notified, and your volunteer tabs
+            appear here as soon as it's approved.
+          </Text>
         </Card>
       ) : null}
 
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionLabel}>NOTIFICATION RADIUS</Text>
-        {updateProfileMutation.isPending ? <ActivityIndicator size="small" /> : null}
-      </View>
+      {me?.organisation ? (
+        <Card style={styles.orgCard}>
+          <SectionLabel label="Organization" />
+          <Text style={styles.orgName}>{me.organisation.name}</Text>
+          <Text style={styles.orgRole}>Volunteer</Text>
+        </Card>
+      ) : null}
+
+      <SectionLabel
+        label="Notification radius"
+        trailing={updateProfileMutation.isPending ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+        style={styles.sectionLabel}
+      />
       <View style={styles.chipRow}>
         {RADIUS_OPTIONS.map((option) => (
           <Chip
@@ -140,7 +173,7 @@ export function SettingsScreen() {
         ))}
       </View>
 
-      <Text style={styles.sectionLabel}>MINIMUM NOTIFICATION URGENCY</Text>
+      <SectionLabel label="Minimum notification urgency" style={styles.sectionLabel} />
       <View style={styles.chipRow}>
         {URGENCY_OPTIONS.map((option) => (
           <Chip
@@ -152,14 +185,12 @@ export function SettingsScreen() {
         ))}
       </View>
 
-      {locationError ? <Text style={styles.errorText}>{locationError}</Text> : null}
+      {locationError ? <ErrorBanner message={locationError} /> : null}
       {updateProfileMutation.isError ? (
-        <Text style={styles.errorText}>{toApiError(updateProfileMutation.error).message}</Text>
+        <ErrorBanner message={toApiError(updateProfileMutation.error).message} />
       ) : null}
 
-      <Pressable style={styles.logoutButton} onPress={signOut}>
-        <Text style={styles.logoutLabel}>Log Out</Text>
-      </Pressable>
+      <PrimaryButton label="Log Out" variant="secondary" icon="log-out-outline" onPress={signOut} />
 
       <Pressable
         style={styles.deleteAccountButton}
@@ -184,15 +215,16 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     gap: spacing.lg,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: colors.textPrimary,
+  header: {
+    marginBottom: 0,
   },
-  identityRow: {
+  identityCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
+  },
+  identityText: {
+    flex: 1,
   },
   avatar: {
     width: 48,
@@ -203,53 +235,66 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarLabel: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 18,
     fontWeight: "700",
   },
   name: {
+    ...typography.h3,
     fontSize: 16,
-    fontWeight: "700",
-    color: colors.textPrimary,
     textTransform: "capitalize",
   },
   email: {
-    fontSize: 13,
+    ...typography.meta,
     color: colors.textSecondary,
   },
   linkRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  linkIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: radii.sm,
+    backgroundColor: colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
   },
   linkLabel: {
-    fontSize: 15,
+    flex: 1,
+    ...typography.body,
     fontWeight: "600",
-    color: colors.textPrimary,
   },
-  cardLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    color: colors.textMuted,
-    marginBottom: 4,
+  pendingCard: {
+    gap: spacing.sm,
+    backgroundColor: colors.status.pendingTint,
+    borderColor: colors.status.pending,
   },
-  orgName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  sectionHeaderRow: {
+  pendingHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: -spacing.sm,
+    gap: spacing.sm,
   },
+  pendingTitle: {
+    ...typography.h3,
+    fontSize: 15,
+    color: colors.status.pending,
+  },
+  pendingBody: {
+    ...typography.meta,
+    color: colors.status.pending,
+    lineHeight: 18,
+  },
+  orgCard: {
+    gap: spacing.xs,
+  },
+  orgName: {
+    ...typography.body,
+    fontWeight: "600",
+  },
+  orgRole: typography.meta,
   sectionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    color: colors.textMuted,
     marginBottom: -spacing.sm,
   },
   chipRow: {
@@ -257,29 +302,13 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: spacing.sm,
   },
-  errorText: {
-    fontSize: 13,
-    color: colors.danger,
-  },
-  logoutButton: {
-    borderWidth: 1,
-    borderColor: colors.danger,
-    borderRadius: radii.md,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  logoutLabel: {
-    color: colors.danger,
-    fontWeight: "700",
-    fontSize: 15,
-  },
   deleteAccountButton: {
     paddingVertical: 8,
     alignItems: "center",
   },
   deleteAccountLabel: {
-    color: colors.textMuted,
+    color: colors.danger,
     fontSize: 13,
-    textDecorationLine: "underline",
+    fontWeight: "600",
   },
 });

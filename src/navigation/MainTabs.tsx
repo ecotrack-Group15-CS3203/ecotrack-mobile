@@ -7,7 +7,7 @@ import { EventsListScreen } from "../modules/event/EventsListScreen";
 import { IncidentMapScreen } from "../modules/map/IncidentMapScreen";
 import { SettingsScreen } from "../modules/settings/SettingsScreen";
 import { MyTasksScreen } from "../modules/task/MyTasksScreen";
-import { colors, radii } from "../theme/colors";
+import { colors, radii, spacing } from "../theme/colors";
 import { ReportPlaceholderScreen } from "./placeholders/ReportPlaceholderScreen";
 
 const Tab = createBottomTabNavigator();
@@ -26,6 +26,13 @@ export function MainTabs() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarActiveBackgroundColor: colors.primaryLight,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+          height: 64,
+          paddingTop: spacing.xs,
+          paddingBottom: spacing.sm,
+        },
         tabBarItemStyle: { borderRadius: radii.sm, marginHorizontal: 6, marginVertical: 4 },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
       }}

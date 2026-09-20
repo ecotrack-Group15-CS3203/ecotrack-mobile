@@ -1,8 +1,10 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 
-import { colors, radii, spacing } from "../../theme/colors";
+import { ErrorBanner } from "../../components/ErrorBanner";
+import { PrimaryButton } from "../../components/PrimaryButton";
+import { colors, radii, spacing, typography } from "../../theme/colors";
 import { useAsgardeoAuth } from "./useAsgardeoAuth";
 
 const FEATURES = [
@@ -16,6 +18,11 @@ const FEATURES = [
     title: "Take on cleanup tasks",
     subtitle: "Volunteer with organizations near you.",
   },
+  {
+    icon: "notifications-outline" as const,
+    title: "Know what's nearby",
+    subtitle: "Alerts for hazards reported around you.",
+  },
 ];
 
 export function LoginScreen() {
@@ -26,7 +33,7 @@ export function LoginScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.logo}>
-          <Ionicons name="location" size={22} color="#FFFFFF" />
+          <Ionicons name="leaf" size={24} color={colors.onPrimary} />
         </View>
         <Text style={styles.appName}>EcoTrack</Text>
       </View>
@@ -47,21 +54,18 @@ export function LoginScreen() {
       </View>
 
       <View style={styles.footer}>
-        {isExchanging ? (
-          <View style={styles.button}>
-            <ActivityIndicator color="#FFFFFF" />
+        <PrimaryButton
+          label={t("auth.login")}
+          icon="lock-closed"
+          loading={isExchanging}
+          disabled={!isReady}
+          onPress={signIn}
+        />
+        {error ? (
+          <View style={styles.errorWrap}>
+            <ErrorBanner message={error} />
           </View>
-        ) : (
-          <Pressable
-            style={[styles.button, !isReady && styles.buttonDisabled]}
-            onPress={signIn}
-            disabled={!isReady}
-          >
-            <Ionicons name="lock-closed" size={16} color="#FFFFFF" />
-            <Text style={styles.buttonLabel}>{t("auth.login")}</Text>
-          </Pressable>
-        )}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        ) : null}
         <Text style={styles.disclaimer}>
           You&apos;ll be taken to <Text style={styles.bold}>WSO2 Asgardeo</Text> to sign in or create an
           account.
@@ -75,10 +79,10 @@ export function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     paddingHorizontal: spacing.lg,
-    paddingTop: 72,
-    paddingBottom: spacing.lg,
+    paddingTop: 84,
+    paddingBottom: spacing.xl,
   },
   header: {
     flexDirection: "row",
@@ -86,21 +90,20 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   logo: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.sm,
+    width: 44,
+    height: 44,
+    borderRadius: radii.md,
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   appName: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: colors.textPrimary,
+    ...typography.h1,
+    fontSize: 24,
   },
   tagline: {
     marginTop: spacing.sm,
-    fontSize: 15,
+    ...typography.body,
     color: colors.textSecondary,
   },
   features: {
@@ -109,12 +112,13 @@ const styles = StyleSheet.create({
   },
   featureRow: {
     flexDirection: "row",
+    alignItems: "center",
     gap: spacing.md,
   },
   featureIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radii.sm,
+    width: 40,
+    height: 40,
+    borderRadius: radii.md,
     backgroundColor: colors.primaryLight,
     alignItems: "center",
     justifyContent: "center",
@@ -123,45 +127,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   featureTitle: {
+    ...typography.h3,
     fontSize: 15,
-    fontWeight: "700",
-    color: colors.textPrimary,
   },
   featureSubtitle: {
     marginTop: 2,
-    fontSize: 13,
+    ...typography.meta,
     color: colors.textSecondary,
   },
   footer: {
     marginTop: "auto",
   },
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.primary,
-    borderRadius: radii.lg,
-    paddingVertical: 16,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonLabel: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  error: {
-    marginTop: spacing.sm,
-    color: colors.danger,
-    textAlign: "center",
+  errorWrap: {
+    marginTop: spacing.md,
   },
   disclaimer: {
     marginTop: spacing.md,
-    fontSize: 12,
+    fontSize: 12.5,
     color: colors.textSecondary,
     textAlign: "center",
+    lineHeight: 18,
   },
   bold: {
     fontWeight: "700",
@@ -169,7 +154,7 @@ const styles = StyleSheet.create({
   },
   footnote: {
     marginTop: spacing.xs,
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textMuted,
     textAlign: "center",
   },

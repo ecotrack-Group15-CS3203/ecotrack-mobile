@@ -10,15 +10,19 @@ import {
   View,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { Ionicons } from "@expo/vector-icons";
 
 import { Badge } from "../../components/Badge";
 import { Card } from "../../components/Card";
+import { ErrorBanner } from "../../components/ErrorBanner";
 import { PrimaryButton } from "../../components/PrimaryButton";
-import { colors, radii, spacing } from "../../theme/colors";
+import { SectionLabel } from "../../components/SectionLabel";
+import { colors, radii, spacing, typography } from "../../theme/colors";
+import { statusTone, urgencyTone } from "../../theme/tones";
 import { toApiError } from "../../services/apiError";
 import { useMe } from "../auth/useMe";
-import { taskStatusLabel } from "./taskLabels";
+import { taskStatusLabel, taskStatusTone } from "./taskLabels";
 import {
   useAddTaskNote,
   useCompleteTask,
@@ -30,7 +34,6 @@ import {
 type RouteParams = { taskId: string };
 
 export function TaskDetailScreen() {
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { params } = useRoute();
   const { taskId } = params as RouteParams;
@@ -55,15 +58,15 @@ export function TaskDetailScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (isError || !task) {
     return (
-      <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <Text style={styles.errorText}>{toApiError(error).message}</Text>
+      <View style={[styles.container, styles.errorWrap, { paddingTop: spacing.xl }]}>
+        <ErrorBanner message={toApiError(error).message} />
       </View>
     );
   }
@@ -78,27 +81,26 @@ export function TaskDetailScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
+      contentContainerStyle={[styles.content, { paddingTop: spacing.md }]}
     >
       <Text style={styles.title}>{task.title}</Text>
       <View style={styles.badgeRow}>
-        <Badge label={taskStatusLabel(task)} />
-        <Badge
-          label={task.priority.toUpperCase()}
-          backgroundColor={colors.urgency[task.priority]}
-          textColor="#FFFFFF"
-        />
+        <Badge label={taskStatusLabel(task)} tone={statusTone(taskStatusTone(task))} />
+        <Badge label={`${task.priority} priority`} tone={urgencyTone(task.priority)} />
       </View>
-      <Text style={styles.dueDate}>Due {new Date(task.dueDate).toLocaleDateString()}</Text>
+      <View style={styles.dueRow}>
+        <Ionicons name="time-outline" size={15} color={colors.textMuted} />
+        <Text style={styles.dueDate}>Due {new Date(task.dueDate).toLocaleDateString()}</Text>
+      </View>
 
       {task.description ? (
-        <Card>
-          <Text style={styles.sectionLabel}>DESCRIPTION</Text>
+        <Card style={styles.section}>
+          <SectionLabel label="Description" />
           <Text style={styles.body}>{task.description}</Text>
         </Card>
       ) : null}
 
-      {actionError ? <Text style={styles.errorText}>{actionError}</Text> : null}
+      {actionError ? <ErrorBanner message={actionError} /> : null}
 
       {awaitingResponse ? (
         <View style={styles.actionRow}>
@@ -109,18 +111,18 @@ export function TaskDetailScreen() {
               onPress={() => runAction(respondMutation.mutateAsync({ accept: true }))}
             />
           </View>
-          <Pressable
-            style={styles.declineButton}
+          <PrimaryButton
+            label="Decline"
+            variant="secondary"
             onPress={() => runAction(respondMutation.mutateAsync({ accept: false, reason: "Not available" }))}
-          >
-            <Text style={styles.declineLabel}>Decline</Text>
-          </Pressable>
+          />
         </View>
       ) : null}
 
       {canStart ? (
         <PrimaryButton
           label="Start Task"
+          icon="play-outline"
           loading={startMutation.isPending}
           onPress={() => runAction(startMutation.mutateAsync())}
         />
@@ -128,8 +130,8 @@ export function TaskDetailScreen() {
 
       {canWorkOn ? (
         <>
-          <Card>
-            <Text style={styles.sectionLabel}>NOTES</Text>
+          <Card style={styles.section}>
+            <SectionLabel label="Notes" />
             {task.notes.length === 0 ? (
               <Text style={styles.emptyText}>No notes yet.</Text>
             ) : (
@@ -143,6 +145,7 @@ export function TaskDetailScreen() {
               <TextInput
                 style={styles.noteInput}
                 placeholder="Add a note"
+                placeholderTextColor={colors.textDisabled}
                 value={noteText}
                 onChangeText={setNoteText}
               />
@@ -159,8 +162,8 @@ export function TaskDetailScreen() {
             </View>
           </Card>
 
-          <Card>
-            <Text style={styles.sectionLabel}>EVIDENCE PHOTOS</Text>
+          <Card style={styles.section}>
+            <SectionLabel label="Evidence photos" />
             {task.photos.length > 0 ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {task.photos.map((photo) => (
@@ -170,19 +173,21 @@ export function TaskDetailScreen() {
             ) : (
               <Text style={styles.emptyText}>No photos added yet — at least one is required to complete.</Text>
             )}
-            <Pressable
-              style={styles.addEvidenceButton}
+            <PrimaryButton
+              label="Add Evidence Photo"
+              variant="secondary"
+              size="sm"
+              icon="camera-outline"
               onPress={() =>
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (navigation as any).navigate("TaskEvidence", { taskId, organisationId })
               }
-            >
-              <Text style={styles.addEvidenceLabel}>Add Evidence Photo</Text>
-            </Pressable>
+            />
           </Card>
 
           <PrimaryButton
             label="Complete Task"
+            icon="checkmark-circle-outline"
             disabled={!canComplete}
             loading={completeMutation.isPending}
             onPress={() => runAction(completeMutation.mutateAsync())}
@@ -209,33 +214,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.background,
   },
-  errorText: {
-    fontSize: 14,
-    color: colors.danger,
-    textAlign: "center",
+  errorWrap: {
+    paddingHorizontal: spacing.lg,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
+  title: typography.h2,
   badgeRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
   },
-  dueDate: {
-    fontSize: 13,
-    color: colors.textMuted,
+  dueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    color: colors.textMuted,
-    marginBottom: spacing.xs,
+  dueDate: typography.meta,
+  section: {
+    gap: spacing.sm,
   },
   body: {
-    fontSize: 14,
+    ...typography.bodySm,
     color: colors.textPrimary,
     lineHeight: 20,
   },
@@ -246,26 +244,10 @@ const styles = StyleSheet.create({
   actionButtonFlex: {
     flex: 1,
   },
-  declineButton: {
-    borderWidth: 1,
-    borderColor: colors.danger,
-    borderRadius: radii.lg,
-    paddingVertical: 16,
-    paddingHorizontal: spacing.lg,
-    justifyContent: "center",
-  },
-  declineLabel: {
-    color: colors.danger,
-    fontWeight: "700",
-  },
-  emptyText: {
-    fontSize: 13,
-    color: colors.textMuted,
-  },
+  emptyText: typography.meta,
   note: {
-    fontSize: 13,
+    ...typography.meta,
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
   },
   noteInputRow: {
     flexDirection: "row",
@@ -275,11 +257,13 @@ const styles = StyleSheet.create({
   noteInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderRadius: radii.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 9,
     fontSize: 13,
+    color: colors.textPrimary,
+    backgroundColor: colors.surface,
   },
   noteAddButton: {
     backgroundColor: colors.primary,
@@ -288,7 +272,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   noteAddLabel: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontWeight: "700",
     fontSize: 13,
   },
@@ -297,19 +281,6 @@ const styles = StyleSheet.create({
     height: 90,
     borderRadius: radii.sm,
     marginRight: spacing.sm,
-    backgroundColor: colors.chipBackground,
-  },
-  addEvidenceButton: {
-    marginTop: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: radii.sm,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  addEvidenceLabel: {
-    color: colors.primary,
-    fontWeight: "700",
-    fontSize: 13,
+    backgroundColor: colors.surfaceMuted,
   },
 });

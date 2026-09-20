@@ -2,15 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Camera, MapView, PointAnnotation, UserLocation } from "@rnmapbox/maps";
 
 import { Badge } from "../../components/Badge";
 import { Chip } from "../../components/Chip";
+import { PrimaryButton } from "../../components/PrimaryButton";
+import { SectionLabel } from "../../components/SectionLabel";
 import { SEVERITY_LABEL } from "../incident/incidentLabels";
 import { useIncidentStore } from "../incident/incidentStore";
 import { useNearbyIncidents } from "../incident/useIncidents";
 import { useNotificationInbox } from "../notifications/useNotifications";
-import { colors, radii, spacing } from "../../theme/colors";
+import { colors, radii, shadows, spacing, typography } from "../../theme/colors";
+import { urgencyTone } from "../../theme/tones";
 import type { IncidentSeverity } from "../../types/api";
 import { Coordinate, ensureForegroundPermission, getCurrentPosition } from "./locationService";
 
@@ -28,6 +32,7 @@ const URGENCY_FILTERS = ["All", "Low", "Medium", "High", "Critical"];
 
 export function IncidentMapScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const pendingCount = useIncidentStore((state) => state.queue.length);
   const { data: inbox } = useNotificationInbox();
   const unreadCount = inbox?.items.filter((n) => !n.isRead).length ?? 0;
@@ -114,17 +119,17 @@ export function IncidentMapScreen() {
         </MapView>
       ) : (
         <View style={styles.mapLoading}>
-          <ActivityIndicator />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       )}
 
       {center && incidentsLoading ? (
-        <View style={styles.loadingChip}>
+        <View style={[styles.loadingChip, { top: insets.top + spacing.xl + 48 }]}>
           <ActivityIndicator size="small" color={colors.primary} />
         </View>
       ) : null}
 
-      <View style={styles.header}>
+      <View style={[styles.header, { top: insets.top + spacing.sm }]}>
         <Text style={styles.headerTitle}>EcoTrack</Text>
         <View style={styles.headerActions}>
           <Pressable
@@ -144,7 +149,8 @@ export function IncidentMapScreen() {
       </View>
 
       {pendingCount > 0 ? (
-        <View style={styles.banner}>
+        <View style={[styles.banner, { top: insets.top + spacing.sm + 52 }]}>
+          <Ionicons name="cloud-offline-outline" size={15} color={colors.onPrimary} />
           <Text style={styles.bannerText}>
             {pendingCount} report{pendingCount === 1 ? "" : "s"} pending · waiting for connection.
           </Text>
@@ -152,7 +158,7 @@ export function IncidentMapScreen() {
       ) : null}
 
       <Pressable style={styles.fab} onPress={() => navigation.getParent()?.navigate("ReportModal" as never)}>
-        <Ionicons name="add" size={28} color="#FFFFFF" />
+        <Ionicons name="add" size={28} color={colors.onPrimary} />
       </Pressable>
 
       {selected ? (
@@ -167,14 +173,12 @@ export function IncidentMapScreen() {
               {selected.title}
             </Text>
             <View style={styles.popupMeta}>
-              <Badge
-                label={SEVERITY_LABEL[selected.severity]}
-                backgroundColor={colors.urgency[selected.severity]}
-                textColor="#FFFFFF"
-              />
+              <Badge label={SEVERITY_LABEL[selected.severity]} tone={urgencyTone(selected.severity)} />
               <Text style={styles.popupDistance}>{(selected.distanceMeters / 1000).toFixed(1)} km</Text>
             </View>
-            <Pressable
+            <PrimaryButton
+              label="View Details"
+              size="sm"
               style={styles.popupButton}
               onPress={() =>
                 // No app-wide navigation param typing exists yet (every screen
@@ -182,36 +186,32 @@ export function IncidentMapScreen() {
                 // here matches that, not a new gap.
                 (navigation.getParent() as any)?.navigate("IncidentDetail", { incidentId: selected.id })
               }
-            >
-              <Text style={styles.popupButtonLabel}>View Details</Text>
-            </Pressable>
+            />
           </View>
         </View>
       ) : null}
 
       <Modal visible={filterVisible} transparent animationType="fade" onRequestClose={() => setFilterVisible(false)}>
         <Pressable style={styles.sheetBackdrop} onPress={() => setFilterVisible(false)} />
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}>
           <View style={styles.sheetHandle} />
           <Text style={styles.sheetTitle}>Filter Incidents</Text>
 
-          <Text style={styles.sheetLabel}>STATUS</Text>
+          <SectionLabel label="Status" style={styles.sheetLabel} />
           <View style={styles.chipRow}>
             {STATUS_FILTERS.map((status) => (
               <Chip key={status} label={status} selected={status === statusFilter} onPress={() => setStatusFilter(status)} />
             ))}
           </View>
 
-          <Text style={styles.sheetLabel}>URGENCY</Text>
+          <SectionLabel label="Urgency" style={styles.sheetLabel} />
           <View style={styles.chipRow}>
             {URGENCY_FILTERS.map((level) => (
               <Chip key={level} label={level} selected={level === urgencyFilter} onPress={() => setUrgencyFilter(level)} />
             ))}
           </View>
 
-          <Pressable style={styles.applyButton} onPress={() => setFilterVisible(false)}>
-            <Text style={styles.applyButtonLabel}>Apply</Text>
-          </Pressable>
+          <PrimaryButton label="Apply" onPress={() => setFilterVisible(false)} style={styles.applyButton} />
         </View>
       </Modal>
     </View>
@@ -221,7 +221,7 @@ export function IncidentMapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#EDEDE6",
+    backgroundColor: colors.background,
   },
   map: {
     flex: 1,
@@ -233,20 +233,14 @@ const styles = StyleSheet.create({
   },
   loadingChip: {
     position: "absolute",
-    top: spacing.lg,
     alignSelf: "center",
     backgroundColor: colors.surface,
     borderRadius: radii.pill,
     padding: spacing.sm,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...shadows.card,
   },
   header: {
     position: "absolute",
-    top: spacing.lg,
     left: spacing.lg,
     right: spacing.lg,
     flexDirection: "row",
@@ -254,28 +248,26 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    textShadowColor: "rgba(255,255,255,0.9)",
-    textShadowRadius: 6,
+    ...typography.h2,
+    // The map behind it can be any colour, so the wordmark carries its own
+    // halo rather than relying on the tiles staying light.
+    textShadowColor: "rgba(255,255,255,0.95)",
+    textShadowRadius: 8,
   },
   headerActions: {
     flexDirection: "row",
     gap: spacing.sm,
   },
   iconButton: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     borderRadius: radii.pill,
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...shadows.card,
   },
   unreadDot: {
     position: "absolute",
@@ -291,23 +283,28 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: "#FFFFFF",
+    // `--marker-ring` on the web: a white ring keeps a pin readable against
+    // dark satellite tiles as well as light ones.
+    borderColor: colors.surface,
   },
   banner: {
     position: "absolute",
-    top: spacing.lg + 56,
     left: spacing.lg,
     right: spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
     backgroundColor: colors.textPrimary,
     borderRadius: radii.sm,
-    paddingVertical: spacing.sm,
+    paddingVertical: 10,
     paddingHorizontal: spacing.md,
+    ...shadows.card,
   },
   bannerText: {
-    color: "#FFFFFF",
-    fontSize: 12,
+    color: colors.onPrimary,
+    fontSize: 12.5,
     fontWeight: "600",
-    textAlign: "center",
   },
   fab: {
     position: "absolute",
@@ -319,11 +316,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
+    ...shadows.pop,
   },
   popup: {
     position: "absolute",
@@ -332,29 +325,26 @@ const styles = StyleSheet.create({
     bottom: spacing.lg,
     backgroundColor: colors.surface,
     borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: spacing.md,
     flexDirection: "row",
     gap: spacing.md,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    ...shadows.pop,
   },
   popupThumbnail: {
-    width: 48,
-    height: 48,
+    width: 56,
+    height: 56,
     borderRadius: radii.sm,
-    backgroundColor: "#E5E5DC",
+    backgroundColor: colors.surfaceMuted,
   },
   popupBody: {
     flex: 1,
     gap: spacing.xs,
   },
   popupTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.textPrimary,
+    ...typography.h3,
+    fontSize: 15,
   },
   popupMeta: {
     flexDirection: "row",
@@ -362,24 +352,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   popupDistance: {
+    ...typography.meta,
     fontSize: 12,
-    color: colors.textSecondary,
   },
   popupButton: {
     marginTop: spacing.xs,
-    backgroundColor: colors.primary,
-    borderRadius: radii.sm,
-    paddingVertical: 8,
-    alignItems: "center",
-  },
-  popupButtonLabel: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 13,
   },
   sheetBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: colors.scrim,
   },
   sheet: {
     backgroundColor: colors.surface,
@@ -396,16 +377,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   sheetTitle: {
+    ...typography.h3,
     fontSize: 18,
-    fontWeight: "700",
-    color: colors.textPrimary,
     marginBottom: spacing.md,
   },
   sheetLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    color: colors.textMuted,
     marginBottom: spacing.sm,
   },
   chipRow: {
@@ -415,15 +391,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   applyButton: {
-    backgroundColor: colors.primary,
-    borderRadius: radii.lg,
-    paddingVertical: 14,
-    alignItems: "center",
     marginTop: spacing.sm,
-  },
-  applyButtonLabel: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
   },
 });

@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRoute } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { Ionicons } from "@expo/vector-icons";
 
 import { Badge } from "../../components/Badge";
 import { Card } from "../../components/Card";
+import { ErrorBanner } from "../../components/ErrorBanner";
 import { PrimaryButton } from "../../components/PrimaryButton";
-import { colors, spacing } from "../../theme/colors";
+import { SectionLabel } from "../../components/SectionLabel";
+import { colors, radii, spacing, typography } from "../../theme/colors";
+import { statusTone, tones, urgencyTone } from "../../theme/tones";
 import { toApiError } from "../../services/apiError";
 import { useMe } from "../auth/useMe";
 import { CATEGORY_LABEL, SEVERITY_LABEL } from "../incident/incidentLabels";
@@ -24,7 +28,6 @@ function formatRange(scheduledAt: string, endsAt: string): string {
 }
 
 export function EventDetailScreen() {
-  const insets = useSafeAreaInsets();
   const { params } = useRoute();
   const { eventId } = params as RouteParams;
 
@@ -39,15 +42,15 @@ export function EventDetailScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (isError || !event) {
     return (
-      <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <Text style={styles.errorText}>{toApiError(error).message}</Text>
+      <View style={[styles.container, styles.errorWrap, { paddingTop: spacing.xl }]}>
+        <ErrorBanner message={toApiError(error).message} />
       </View>
     );
   }
@@ -65,67 +68,68 @@ export function EventDetailScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
+      contentContainerStyle={[styles.content, { paddingTop: spacing.md }]}
     >
       <Text style={styles.title}>{event.title}</Text>
       <View style={styles.badgeRow}>
-        {isGoing ? <Badge label="GOING" /> : null}
-        <Badge
-          label={event.status.toUpperCase()}
-          backgroundColor={colors.chipBackground}
-          textColor={colors.chipText}
-        />
+        {isGoing ? <Badge label="Going" tone={tones.resolved} /> : null}
+        <Badge label={event.status.replace(/_/g, " ")} tone={statusTone(event.status)} />
       </View>
 
-      <Text style={styles.dateRange}>{formatRange(event.scheduledAt, event.endsAt)}</Text>
+      <View style={styles.dateRow}>
+        <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
+        <Text style={styles.dateRange}>{formatRange(event.scheduledAt, event.endsAt)}</Text>
+      </View>
 
       {event.description ? (
-        <Card>
-          <Text style={styles.sectionLabel}>DESCRIPTION</Text>
+        <Card style={styles.section}>
+          <SectionLabel label="Description" />
           <Text style={styles.body}>{event.description}</Text>
         </Card>
       ) : null}
 
       {event.incidents.length > 0 ? (
-        <Card>
-          <Text style={styles.sectionLabel}>LINKED REPORTS</Text>
+        <Card style={styles.section}>
+          <SectionLabel label="Linked reports" />
           {event.incidents.map((incident) => (
             <View key={incident.id} style={styles.incidentRow}>
               <Text style={styles.incidentTitle} numberOfLines={1}>
                 {incident.title}
               </Text>
-              <Badge
-                label={SEVERITY_LABEL[incident.severity]}
-                backgroundColor={colors.urgency[incident.severity]}
-                textColor="#FFFFFF"
-              />
-              <Badge label={CATEGORY_LABEL[incident.category]} />
+              <Badge label={SEVERITY_LABEL[incident.severity]} tone={urgencyTone(incident.severity)} />
+              <Badge label={CATEGORY_LABEL[incident.category]} tone={tones.neutral} dot={false} />
             </View>
           ))}
         </Card>
       ) : null}
 
-      <Card>
-        <Text style={styles.sectionLabel}>
-          RSVPS ({event.rsvpCount}
-          {event.maxAttendees !== null ? ` / ${event.maxAttendees}` : ""})
-        </Text>
+      <Card style={styles.section}>
+        <SectionLabel
+          label={`RSVPs (${event.rsvpCount}${event.maxAttendees !== null ? ` / ${event.maxAttendees}` : ""})`}
+        />
         {event.rsvps.length === 0 ? (
           <Text style={styles.emptyText}>No one has RSVPed yet — be the first.</Text>
         ) : (
           event.rsvps.map((rsvp) => (
-            <Text key={rsvp.userId} style={styles.rsvpName}>
-              {rsvp.user?.fullName ?? "A volunteer"}
-            </Text>
+            <View key={rsvp.userId} style={styles.rsvpRow}>
+              <View style={styles.rsvpAvatar}>
+                <Text style={styles.rsvpInitial}>
+                  {(rsvp.user?.fullName ?? "A").charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <Text style={styles.rsvpName}>{rsvp.user?.fullName ?? "A volunteer"}</Text>
+            </View>
           ))
         )}
       </Card>
 
-      {actionError ? <Text style={styles.errorText}>{actionError}</Text> : null}
+      {actionError ? <ErrorBanner message={actionError} /> : null}
 
       {canRsvp ? (
         <PrimaryButton
           label={isGoing ? "Cancel RSVP" : isFull ? "Event is full" : "RSVP"}
+          variant={isGoing ? "secondary" : "primary"}
+          icon={isGoing ? undefined : "checkmark-circle-outline"}
           disabled={isFull && !isGoing}
           loading={rsvpMutation.isPending || cancelMutation.isPending}
           onPress={handleRsvpToggle}
@@ -151,33 +155,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.background,
   },
-  errorText: {
-    fontSize: 14,
-    color: colors.danger,
-    textAlign: "center",
+  errorWrap: {
+    paddingHorizontal: spacing.lg,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
+  title: typography.h2,
   badgeRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  dateRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
   dateRange: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    ...typography.bodySm,
+    flex: 1,
   },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    color: colors.textMuted,
-    marginBottom: spacing.xs,
+  section: {
+    gap: spacing.sm,
   },
   body: {
-    fontSize: 14,
+    ...typography.bodySm,
     color: colors.textPrimary,
     lineHeight: 20,
   },
@@ -185,20 +185,33 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    marginBottom: spacing.xs,
   },
   incidentTitle: {
     flex: 1,
-    fontSize: 13,
+    ...typography.meta,
     color: colors.textPrimary,
   },
-  emptyText: {
-    fontSize: 13,
-    color: colors.textMuted,
+  emptyText: typography.meta,
+  rsvpRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  rsvpAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: radii.pill,
+    backgroundColor: colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rsvpInitial: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.primary,
   },
   rsvpName: {
-    fontSize: 13,
+    ...typography.bodySm,
     color: colors.textPrimary,
-    marginBottom: 2,
   },
 });

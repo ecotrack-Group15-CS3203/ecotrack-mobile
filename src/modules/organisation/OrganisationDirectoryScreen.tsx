@@ -1,17 +1,20 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { Ionicons } from "@expo/vector-icons";
 
 import { Badge } from "../../components/Badge";
 import { Card } from "../../components/Card";
-import { colors, radii, spacing } from "../../theme/colors";
+import { EmptyState } from "../../components/EmptyState";
+import { ErrorBanner } from "../../components/ErrorBanner";
+import { colors, radii, spacing, typography } from "../../theme/colors";
+import { tones } from "../../theme/tones";
 import { toApiError } from "../../services/apiError";
 import { ensureForegroundPermission, getCurrentPosition } from "../map/locationService";
 import { useOrganisationDirectory } from "./useOrganisations";
 
 export function OrganisationDirectoryScreen() {
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
 
   const [rawQuery, setRawQuery] = useState("");
@@ -45,26 +48,42 @@ export function OrganisationDirectoryScreen() {
   const organisations = data?.items ?? [];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + spacing.md }]}>
-      <Text style={styles.title}>Find an Organization</Text>
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search by name"
-        value={rawQuery}
-        onChangeText={setRawQuery}
-        autoCapitalize="none"
-      />
+    <View style={[styles.container, { paddingTop: spacing.md }]}>
+      <Text style={styles.intro}>Volunteer with a group working near you.</Text>
+      <View style={styles.searchField}>
+        <Ionicons name="search-outline" size={18} color={colors.textMuted} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by name"
+          placeholderTextColor={colors.textDisabled}
+          value={rawQuery}
+          onChangeText={setRawQuery}
+          autoCapitalize="none"
+        />
+      </View>
 
       {isLoading ? (
-        <ActivityIndicator style={styles.spinner} />
+        <ActivityIndicator style={styles.spinner} color={colors.primary} />
       ) : isError ? (
-        <Text style={styles.errorText}>{toApiError(error).message}</Text>
+        <View style={styles.spinner}>
+          <ErrorBanner message={toApiError(error).message} />
+        </View>
       ) : (
         <FlatList
           data={organisations}
           keyExtractor={(org) => org.id}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={<Text style={styles.emptyText}>No organizations found.</Text>}
+          ListEmptyComponent={
+            <EmptyState
+              icon="search-outline"
+              title="No organizations found"
+              message={
+                query
+                  ? `Nothing matches "${query}". Try a shorter search.`
+                  : "No organizations are listed yet."
+              }
+            />
+          }
           renderItem={({ item }) => (
             <Pressable
               onPress={() =>
@@ -83,8 +102,7 @@ export function OrganisationDirectoryScreen() {
                   {item.eligible !== null ? (
                     <Badge
                       label={item.eligible ? "Serves your area" : "Outside your area"}
-                      backgroundColor={item.eligible ? colors.primaryLight : colors.chipBackground}
-                      textColor={item.eligible ? colors.primary : colors.textMuted}
+                      tone={item.eligible ? tones.resolved : tones.neutral}
                     />
                   ) : null}
                 </View>
@@ -94,7 +112,10 @@ export function OrganisationDirectoryScreen() {
                   </Text>
                 ) : null}
                 {item.distanceMeters !== null ? (
-                  <Text style={styles.orgDistance}>{(item.distanceMeters / 1000).toFixed(1)} km away</Text>
+                  <View style={styles.orgFooter}>
+                    <Ionicons name="navigate-outline" size={13} color={colors.textMuted} />
+                    <Text style={styles.orgDistance}>{(item.distanceMeters / 1000).toFixed(1)} km away</Text>
+                  </View>
                 ) : null}
               </Card>
             </Pressable>
@@ -112,42 +133,35 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: spacing.lg,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: colors.textPrimary,
+  intro: {
+    ...typography.bodySm,
+    marginBottom: spacing.md,
   },
-  searchInput: {
-    marginTop: spacing.md,
+  searchField: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
+    borderColor: colors.borderStrong,
+    borderRadius: radii.sm,
     paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    fontSize: 14,
     backgroundColor: colors.surface,
   },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 11,
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
   spinner: {
-    marginTop: spacing.xl,
-  },
-  errorText: {
-    fontSize: 14,
-    color: colors.danger,
-    textAlign: "center",
-    marginTop: spacing.xl,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textMuted,
-    textAlign: "center",
     marginTop: spacing.xl,
   },
   listContent: {
     paddingBottom: spacing.xl,
   },
   orgCard: {
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   orgHeader: {
     flexDirection: "row",
@@ -157,16 +171,22 @@ const styles = StyleSheet.create({
   },
   orgName: {
     flex: 1,
+    ...typography.h3,
     fontSize: 15,
-    fontWeight: "700",
-    color: colors.textPrimary,
   },
   orgDescription: {
-    fontSize: 13,
+    ...typography.meta,
     color: colors.textSecondary,
+    lineHeight: 19,
+  },
+  orgFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    marginTop: spacing.xs,
   },
   orgDistance: {
+    ...typography.meta,
     fontSize: 12,
-    color: colors.textMuted,
   },
 });

@@ -1,5 +1,7 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
+import { colors, typography } from "../theme/colors";
+
 import { EventDetailScreen } from "../modules/event/EventDetailScreen";
 import { IncidentDetailScreen } from "../modules/incident/IncidentDetailScreen";
 import { MyReportsScreen } from "../modules/incident/MyReportsScreen";
@@ -24,7 +26,18 @@ const Stack = createNativeStackNavigator();
 
 export function RootStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      // One themed header for every detail screen, rather than each screen
+      // drawing its own title: a white bar with the brand teal as the back
+      // tint, and no hairline — the mint background already separates it.
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.surface },
+        headerTintColor: colors.primary,
+        headerTitleStyle: { ...typography.h3, fontSize: 17, color: colors.textPrimary },
+        headerShadowVisible: false,
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    >
       <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
       <Stack.Screen
         name="ReportModal"

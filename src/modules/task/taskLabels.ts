@@ -18,3 +18,19 @@ export function taskStatusLabel(task: Task): string {
   if (assignment?.status === "declined") return "DECLINED";
   return "PENDING";
 }
+
+/**
+ * The status name behind that label, for `statusTone()` — the same pairing the
+ * web uses (`<Chip tone={...}>`), so "in progress" is the same indigo on both
+ * clients. Kept next to `taskStatusLabel` so the two can't drift apart.
+ */
+export function taskStatusTone(task: Task): string {
+  if (task.status === "completed") return "completed";
+  if (task.status === "in_progress") return "in_progress";
+
+  const assignment = task.assignments[0];
+  if (assignment?.status === "assigned") return "assigned";
+  if (assignment?.status === "accepted") return "accepted";
+  if (assignment?.status === "declined") return "declined";
+  return "pending";
+}

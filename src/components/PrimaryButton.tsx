@@ -1,29 +1,78 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { colors, radii, spacing } from "../theme/colors";
+
+type Variant = "primary" | "secondary" | "destructive";
 
 type Props = {
   label: string;
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
+  /** Mirrors the web's `.btn-primary` / `.btn-secondary` / `.btn-destructive`. */
+  variant?: Variant;
+  /** Matches `.btn-sm` — for buttons sitting inside a card or a row. */
+  size?: "sm";
+  icon?: keyof typeof Ionicons.glyphMap;
+  style?: ViewStyle;
+};
+
+const VARIANT_FILL: Record<Variant, string> = {
+  primary: colors.primary,
+  secondary: "transparent",
+  destructive: colors.danger,
+};
+
+const VARIANT_INK: Record<Variant, string> = {
+  primary: colors.onPrimary,
+  secondary: colors.textPrimary,
+  destructive: colors.onPrimary,
 };
 
 /** The primary-action button style already used inline on LoginScreen,
  * extracted here so every later screen with a single confirming action
  * (accept invite, RSVP, complete task, ...) doesn't redefine it. */
-export function PrimaryButton({ label, onPress, loading, disabled }: Props) {
+export function PrimaryButton({
+  label,
+  onPress,
+  loading,
+  disabled,
+  variant = "primary",
+  size,
+  icon,
+  style,
+}: Props) {
   const isDisabled = disabled || loading;
+  // Disabled reads as a flat grey fill rather than a dimmed brand colour —
+  // the same choice as `.btn-primary:disabled` on the web, where opacity alone
+  // still looked tappable.
+  const backgroundColor = isDisabled && variant !== "secondary" ? colors.disabled : VARIANT_FILL[variant];
+  const ink = isDisabled ? colors.textDisabled : VARIANT_INK[variant];
 
   return (
     <Pressable
-      style={[styles.button, isDisabled && styles.buttonDisabled]}
+      style={({ pressed }) => [
+        styles.button,
+        size === "sm" && styles.buttonSm,
+        { backgroundColor },
+        variant === "secondary" && styles.secondary,
+        pressed && !isDisabled && styles.pressed,
+        style,
+      ]}
       onPress={onPress}
       disabled={isDisabled}
       accessibilityRole="button"
       accessibilityState={{ disabled: isDisabled }}
     >
-      {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.label}>{label}</Text>}
+      {loading ? (
+        <ActivityIndicator color={ink} />
+      ) : (
+        <>
+          {icon ? <Ionicons name={icon} size={size === "sm" ? 15 : 17} color={ink} /> : null}
+          <Text style={[styles.label, size === "sm" && styles.labelSm, { color: ink }]}>{label}</Text>
+        </>
+      )}
     </Pressable>
   );
 }
@@ -34,16 +83,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.sm,
-    backgroundColor: colors.primary,
-    borderRadius: radii.lg,
-    paddingVertical: 16,
+    borderRadius: radii.md,
+    paddingVertical: 15,
+    paddingHorizontal: spacing.lg,
   },
-  buttonDisabled: {
-    opacity: 0.6,
+  buttonSm: {
+    paddingVertical: 9,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.sm,
+  },
+  secondary: {
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+  },
+  pressed: {
+    opacity: 0.85,
   },
   label: {
-    color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
+  },
+  labelSm: {
+    fontSize: 13,
   },
 });

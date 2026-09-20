@@ -5,8 +5,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Badge } from "../../components/Badge";
 import { Card } from "../../components/Card";
+import { EmptyState } from "../../components/EmptyState";
+import { ErrorBanner } from "../../components/ErrorBanner";
 import { PrimaryButton } from "../../components/PrimaryButton";
-import { colors, radii, spacing } from "../../theme/colors";
+import { ScreenHeader } from "../../components/ScreenHeader";
+import { colors, radii, spacing, typography } from "../../theme/colors";
+import { tones } from "../../theme/tones";
 import { toApiError } from "../../services/apiError";
 import { useMe } from "../auth/useMe";
 import { useEvents } from "./useEvents";
@@ -20,13 +24,19 @@ export function EventsListScreen() {
 
   if (!me?.organisation) {
     return (
-      <View style={[styles.centered, { paddingTop: insets.top, gap: spacing.md }]}>
-        <Text style={styles.emptyText}>Join an organization to see its upcoming events.</Text>
-        <PrimaryButton
-          label="Find an Organization"
-          onPress={() =>
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (navigation as any).navigate("OrganisationDirectory")
+      <View style={[styles.centered, { paddingTop: insets.top }]}>
+        <EmptyState
+          icon="calendar-outline"
+          title="No organization yet"
+          message="Cleanup events are run by organizations. Join one to see what's coming up."
+          action={
+            <PrimaryButton
+              label="Find an Organization"
+              onPress={() =>
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (navigation as any).navigate("OrganisationDirectory")
+              }
+            />
           }
         />
       </View>
@@ -36,15 +46,15 @@ export function EventsListScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (isError) {
     return (
-      <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <Text style={styles.errorText}>{toApiError(error).message}</Text>
+      <View style={[styles.centered, styles.errorWrap, { paddingTop: insets.top + spacing.xl }]}>
+        <ErrorBanner message={toApiError(error).message} />
       </View>
     );
   }
@@ -57,16 +67,13 @@ export function EventsListScreen() {
       keyExtractor={(event) => event.id}
       refreshing={isRefetching}
       onRefresh={refetch}
-      ListHeaderComponent={
-        <>
-          <Text style={styles.title}>My Events</Text>
-          <Text style={styles.subtitle}>Upcoming cleanups near you</Text>
-        </>
-      }
+      ListHeaderComponent={<ScreenHeader title="My Events" subtitle="Upcoming cleanups near you" />}
       ListEmptyComponent={
-        <View style={styles.centered}>
-          <Text style={styles.emptyText}>No events scheduled yet.</Text>
-        </View>
+        <EmptyState
+          icon="calendar-outline"
+          title="Nothing scheduled"
+          message={`${me.organisation.name} hasn't scheduled an event yet. You'll be notified when one is.`}
+        />
       }
       renderItem={({ item }) => (
         <Pressable
@@ -77,14 +84,14 @@ export function EventsListScreen() {
         >
           <Card style={styles.eventCard}>
             <View style={styles.eventIcon}>
-              <Ionicons name="calendar-outline" size={20} color="#4C5FD5" />
+              <Ionicons name="calendar-outline" size={20} color={colors.status.progress} />
             </View>
             <View style={styles.eventBody}>
               <View style={styles.eventHeader}>
                 <Text style={styles.eventTitle} numberOfLines={1}>
                   {item.title}
                 </Text>
-                {item.rsvpedByMe ? <Badge label="GOING" /> : null}
+                {item.rsvpedByMe ? <Badge label="Going" tone={tones.resolved} /> : null}
               </View>
               <Text style={styles.eventMeta}>
                 {new Date(item.scheduledAt).toLocaleDateString(undefined, {
@@ -95,7 +102,10 @@ export function EventsListScreen() {
                   minute: "2-digit",
                 })}
               </Text>
-              <Text style={styles.eventRsvps}>{item.rsvpCount} RSVPs</Text>
+              <View style={styles.eventFooter}>
+                <Ionicons name="people-outline" size={14} color={colors.textMuted} />
+                <Text style={styles.eventRsvps}>{item.rsvpCount} going</Text>
+              </View>
             </View>
           </Card>
         </Pressable>
@@ -120,27 +130,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: spacing.lg,
+    backgroundColor: colors.background,
   },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textMuted,
-    textAlign: "center",
-  },
-  errorText: {
-    fontSize: 14,
-    color: colors.danger,
-    textAlign: "center",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    marginTop: 2,
-    marginBottom: spacing.lg,
-    fontSize: 13,
-    color: colors.textSecondary,
+  errorWrap: {
+    justifyContent: "flex-start",
   },
   eventCard: {
     flexDirection: "row",
@@ -150,7 +143,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radii.sm,
-    backgroundColor: "#E4E4FA",
+    backgroundColor: colors.status.progressTint,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -166,17 +159,21 @@ const styles = StyleSheet.create({
   },
   eventTitle: {
     flex: 1,
+    ...typography.h3,
     fontSize: 15,
-    fontWeight: "700",
-    color: colors.textPrimary,
   },
   eventMeta: {
-    fontSize: 13,
+    ...typography.meta,
     color: colors.textSecondary,
   },
+  eventFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
   eventRsvps: {
-    marginTop: 4,
+    ...typography.meta,
     fontSize: 12,
-    color: colors.textMuted,
   },
 });

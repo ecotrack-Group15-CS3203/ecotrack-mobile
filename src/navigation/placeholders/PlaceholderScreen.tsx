@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 
+import { colors, typography } from "../../theme/colors";
+
 type Props = {
   label: string;
 };
@@ -13,6 +15,11 @@ export function PlaceholderScreen({ label }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center", justifyContent: "center" },
-  text: { fontSize: 18, fontWeight: "600" },
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.background,
+  },
+  text: typography.h3,
 });

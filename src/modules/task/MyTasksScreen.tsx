@@ -1,15 +1,21 @@
 import { useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Badge } from "../../components/Badge";
 import { Card } from "../../components/Card";
 import { Chip } from "../../components/Chip";
+import { EmptyState } from "../../components/EmptyState";
+import { ErrorBanner } from "../../components/ErrorBanner";
 import { PrimaryButton } from "../../components/PrimaryButton";
-import { colors, spacing } from "../../theme/colors";
+import { ScreenHeader } from "../../components/ScreenHeader";
+import { colors, spacing, typography } from "../../theme/colors";
+import { statusTone } from "../../theme/tones";
 import { toApiError } from "../../services/apiError";
 import { useMe } from "../auth/useMe";
-import { taskStatusLabel } from "./taskLabels";
+import { taskStatusLabel, taskStatusTone } from "./taskLabels";
 import { useMyTasks } from "./useTasks";
 
 const FILTERS = ["All", "Assigned", "In Progress", "Completed"] as const;
@@ -37,13 +43,19 @@ export function MyTasksScreen() {
 
   if (!me?.organisation) {
     return (
-      <View style={[styles.centered, { paddingTop: insets.top, gap: spacing.md }]}>
-        <Text style={styles.emptyText}>Join an organization to be assigned cleanup tasks.</Text>
-        <PrimaryButton
-          label="Find an Organization"
-          onPress={() =>
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (navigation as any).navigate("OrganisationDirectory")
+      <View style={[styles.centered, { paddingTop: insets.top }]}>
+        <EmptyState
+          icon="people-outline"
+          title="No organization yet"
+          message="Cleanup tasks are assigned by the organization you volunteer with."
+          action={
+            <PrimaryButton
+              label="Find an Organization"
+              onPress={() =>
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (navigation as any).navigate("OrganisationDirectory")
+              }
+            />
           }
         />
       </View>
@@ -53,15 +65,15 @@ export function MyTasksScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (isError) {
     return (
-      <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <Text style={styles.errorText}>{toApiError(error).message}</Text>
+      <View style={[styles.centered, styles.errorWrap, { paddingTop: insets.top + spacing.xl }]}>
+        <ErrorBanner message={toApiError(error).message} />
       </View>
     );
   }
@@ -76,8 +88,7 @@ export function MyTasksScreen() {
       onRefresh={refetch}
       ListHeaderComponent={
         <>
-          <Text style={styles.title}>My Tasks</Text>
-          <Text style={styles.subtitle}>Assignments from your organization</Text>
+          <ScreenHeader title="My Tasks" subtitle={`Assignments from ${me.organisation.name}`} />
           <View style={styles.filterRow}>
             {FILTERS.map((option) => (
               <Chip key={option} label={option} selected={option === filter} onPress={() => setFilter(option)} />
@@ -86,9 +97,15 @@ export function MyTasksScreen() {
         </>
       }
       ListEmptyComponent={
-        <View style={styles.centered}>
-          <Text style={styles.emptyText}>No tasks here.</Text>
-        </View>
+        <EmptyState
+          icon="checkbox-outline"
+          title="Nothing in this view"
+          message={
+            filter === "All"
+              ? "When your organization assigns you a cleanup, it lands here."
+              : "No tasks match this filter right now."
+          }
+        />
       }
       renderItem={({ item }) => (
         <Pressable
@@ -102,10 +119,17 @@ export function MyTasksScreen() {
               <Text style={styles.taskTitle} numberOfLines={1}>
                 {item.title}
               </Text>
-              <Text style={styles.taskStatus}>{taskStatusLabel(item)}</Text>
+              <Badge label={taskStatusLabel(item)} tone={statusTone(taskStatusTone(item))} />
             </View>
-            {item.description ? <Text style={styles.taskDescription}>{item.description}</Text> : null}
-            <Text style={styles.taskDue}>Due {new Date(item.dueDate).toLocaleDateString()}</Text>
+            {item.description ? (
+              <Text style={styles.taskDescription} numberOfLines={2}>
+                {item.description}
+              </Text>
+            ) : null}
+            <View style={styles.taskFooter}>
+              <Ionicons name="time-outline" size={14} color={colors.textMuted} />
+              <Text style={styles.taskDue}>Due {new Date(item.dueDate).toLocaleDateString()}</Text>
+            </View>
           </Card>
         </Pressable>
       )}
@@ -129,36 +153,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: spacing.lg,
+    backgroundColor: colors.background,
   },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textMuted,
-    textAlign: "center",
-  },
-  errorText: {
-    fontSize: 14,
-    color: colors.danger,
-    textAlign: "center",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    marginTop: 2,
-    fontSize: 13,
-    color: colors.textSecondary,
+  errorWrap: {
+    justifyContent: "flex-start",
   },
   filterRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm,
-    marginTop: spacing.md,
     marginBottom: spacing.lg,
   },
   taskCard: {
-    gap: 4,
+    gap: spacing.sm,
   },
   taskHeader: {
     flexDirection: "row",
@@ -168,23 +175,21 @@ const styles = StyleSheet.create({
   },
   taskTitle: {
     flex: 1,
+    ...typography.h3,
     fontSize: 15,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  taskStatus: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    color: colors.textMuted,
   },
   taskDescription: {
-    fontSize: 13,
+    ...typography.meta,
     color: colors.textSecondary,
+    lineHeight: 19,
+  },
+  taskFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
   taskDue: {
+    ...typography.meta,
     fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 4,
   },
 });

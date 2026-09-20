@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Chip } from "../../../components/Chip";
+import { PrimaryButton } from "../../../components/PrimaryButton";
 import { colors, radii, spacing } from "../../../theme/colors";
 
 export type Urgency = "Low" | "Medium" | "High" | "Critical";
 
+/** The chip fills come from the shared urgency ramp, so "Critical" here is the
+ * same red as a critical badge on the map and in the web console. */
 const URGENCY_OPTIONS: { label: Urgency; color: string }[] = [
   { label: "Low", color: colors.urgency.low },
   { label: "Medium", color: colors.urgency.medium },
@@ -56,7 +59,7 @@ export function Step3Details({
           onChangeText={onTitleChange}
           onBlur={() => setTitleTouched(true)}
           placeholder="Short description of the hazard"
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={colors.textDisabled}
         />
         {showError ? <Text style={styles.errorText}>{error}</Text> : null}
       </View>
@@ -68,7 +71,7 @@ export function Step3Details({
           value={description}
           onChangeText={onDescriptionChange}
           placeholder="What did you observe?"
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={colors.textDisabled}
           multiline
         />
       </View>
@@ -88,15 +91,15 @@ export function Step3Details({
         </View>
       </View>
 
-      <Pressable
-        style={[styles.submitButton, !!error && styles.submitButtonDisabled]}
+      <PrimaryButton
+        label="Submit Report"
+        icon="send-outline"
+        disabled={!!error}
         onPress={() => {
           setTitleTouched(true);
           if (!error) onSubmit();
         }}
-      >
-        <Text style={styles.submitLabel}>Submit</Text>
-      </Pressable>
+      />
     </View>
   );
 }
@@ -106,25 +109,26 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
     color: colors.textPrimary,
-    marginBottom: spacing.sm,
+    marginBottom: 6,
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderRadius: radii.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: 12,
     fontSize: 14,
     color: colors.textPrimary,
+    backgroundColor: colors.surface,
   },
   inputError: {
     borderColor: colors.danger,
   },
   errorText: {
-    marginTop: spacing.xs,
+    marginTop: 5,
     fontSize: 12,
     color: colors.danger,
   },
@@ -136,19 +140,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm,
-  },
-  submitButton: {
-    backgroundColor: colors.primary,
-    borderRadius: radii.lg,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  submitButtonDisabled: {
-    backgroundColor: colors.chipBackground,
-  },
-  submitLabel: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 15,
   },
 });
