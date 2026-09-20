@@ -1,6 +1,7 @@
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 
 import { Badge } from "../../components/Badge";
 import { Card } from "../../components/Card";
@@ -9,12 +10,13 @@ import { SectionLabel } from "../../components/SectionLabel";
 import { colors, radii, spacing, typography } from "../../theme/colors";
 import { statusTone, tones, urgencyTone } from "../../theme/tones";
 import { toApiError } from "../../services/apiError";
-import { CATEGORY_LABEL, SEVERITY_LABEL } from "./incidentLabels";
+import { categoryKey, severityKey } from "./incidentLabels";
 import { useIncidentDetail } from "./useIncidents";
 
 type RouteParams = { incidentId: string };
 
 export function IncidentDetailScreen() {
+  const { t } = useTranslation();
   const { params } = useRoute();
   const { incidentId } = params as RouteParams;
 
@@ -54,8 +56,8 @@ export function IncidentDetailScreen() {
       <Text style={styles.title}>{incident.title}</Text>
 
       <View style={styles.badgeRow}>
-        <Badge label={SEVERITY_LABEL[incident.severity]} tone={urgencyTone(incident.severity)} />
-        <Badge label={CATEGORY_LABEL[incident.category]} tone={tones.neutral} dot={false} />
+        <Badge label={t(severityKey(incident.severity))} tone={urgencyTone(incident.severity)} />
+        <Badge label={t(categoryKey(incident.category))} tone={tones.neutral} dot={false} />
         <Badge
           label={claimed ? "Claimed" : "Awaiting claim"}
           tone={claimed ? statusTone("verified") : tones.pending}

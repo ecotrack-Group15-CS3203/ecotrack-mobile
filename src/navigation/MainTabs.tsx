@@ -4,11 +4,11 @@ import { useTranslation } from "react-i18next";
 
 import { useMe } from "../modules/auth/useMe";
 import { EventsListScreen } from "../modules/event/EventsListScreen";
+import { MyReportsScreen } from "../modules/incident/MyReportsScreen";
 import { IncidentMapScreen } from "../modules/map/IncidentMapScreen";
 import { SettingsScreen } from "../modules/settings/SettingsScreen";
 import { MyTasksScreen } from "../modules/task/MyTasksScreen";
 import { colors, radii, spacing } from "../theme/colors";
-import { ReportPlaceholderScreen } from "./placeholders/ReportPlaceholderScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -45,6 +45,18 @@ export function MainTabs() {
           tabBarIcon: ({ color, size }) => <Ionicons name="location-outline" size={size} color={color} />,
         }}
       />
+      {/* A real destination — the user's own reports, with the "Report an issue"
+          action at the top. It used to be a placeholder whose tab press was
+          intercepted to open the same wizard as the map's floating button. The map
+          FAB stays (SRS §3.9.1 requires it): it makes a report, this tab tracks them. */}
+      <Tab.Screen
+        name="Report"
+        component={MyReportsScreen}
+        options={{
+          title: t("nav.report"),
+          tabBarIcon: ({ color, size }) => <Ionicons name="document-text-outline" size={size} color={color} />,
+        }}
+      />
       {hasOrganisation ? (
         <Tab.Screen
           name="MyTasks"
@@ -55,22 +67,6 @@ export function MainTabs() {
           }}
         />
       ) : null}
-      <Tab.Screen
-        name="Report"
-        component={ReportPlaceholderScreen}
-        options={{
-          title: t("nav.report"),
-          tabBarIcon: ({ color, size }) => <Ionicons name="add-circle-outline" size={size} color={color} />,
-        }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            // Report is a FAB, not a real tab destination: it pushes a modal
-            // on the parent stack instead of switching the active tab.
-            e.preventDefault();
-            navigation.getParent()?.navigate("ReportModal");
-          },
-        })}
-      />
       {hasOrganisation ? (
         <Tab.Screen
           name="MyEvents"

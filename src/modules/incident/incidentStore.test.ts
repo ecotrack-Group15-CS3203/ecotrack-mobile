@@ -1,5 +1,6 @@
 import { AxiosError } from "axios";
 
+import { queryClient } from "../../services/queryClient";
 import { UploadError } from "../../services/uploadError";
 import { RETRY_BACKOFF_MS, useIncidentStore } from "./incidentStore";
 import { IncidentDraftInput, offlineQueueService } from "./offlineQueueService";
@@ -69,6 +70,27 @@ describe("incidentStore.processQueue", () => {
 
     expect(mockCreate).toHaveBeenCalledTimes(1);
     expect(titlesInQueue()).toEqual([]);
+  });
+
+  it("refreshes the user's incident lists once a report is delivered", async () => {
+    const invalidate = jest.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+    offlineQueueService.enqueue(input("a"));
+
+    await useIncidentStore.getState().processQueue();
+
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["incidents"] });
+    invalidate.mockRestore();
+  });
+
+  it("does not refresh anything for a report that failed to send", async () => {
+    const invalidate = jest.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+    offlineQueueService.enqueue(input("a"));
+    mockCreate.mockRejectedValueOnce(httpError(400));
+
+    await useIncidentStore.getState().processQueue();
+
+    expect(invalidate).not.toHaveBeenCalled();
+    invalidate.mockRestore();
   });
 
   it("keeps sending the drafts behind one the server rejected", async () => {

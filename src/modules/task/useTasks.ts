@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useMe } from "../auth/useMe";
 import { tasksApi, TaskView } from "./api/tasks.api";
@@ -13,6 +13,24 @@ export function useMyTasks(view?: TaskView) {
     queryKey: ["tasks", "mine", organisationId, view],
     queryFn: () => tasksApi.getMine(organisationId!, view, 1, PAGE_SIZE),
     enabled: !!organisationId,
+    // Switching segments keeps the previous list on screen until the next one
+    // lands, rather than swapping it for a full-screen spinner on every tap.
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** How many tasks this volunteer has completed — `total` from a one-row page of the
+ * completed view. Under ["tasks", "mine", ...] so completing a task refreshes it
+ * (invalidateTaskQueries below). Mounted only by the Profile screen. */
+export function useCompletedTaskCount() {
+  const { data: me } = useMe();
+  const organisationId = me?.organisation?.id;
+
+  return useQuery({
+    queryKey: ["tasks", "mine", organisationId, "completed", "count"],
+    queryFn: async () => (await tasksApi.getMine(organisationId!, "completed", 1, 1)).total,
+    enabled: !!organisationId,
+    staleTime: 5 * 60_000,
   });
 }
 

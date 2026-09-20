@@ -1,56 +1,56 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 
 import { Badge } from "../../components/Badge";
 import { Card } from "../../components/Card";
-import { Chip } from "../../components/Chip";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorBanner } from "../../components/ErrorBanner";
+import { MetaRow } from "../../components/MetaRow";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { ScreenHeader } from "../../components/ScreenHeader";
+import { Segmented } from "../../components/Segmented";
 import { colors, spacing, typography } from "../../theme/colors";
-import { statusTone } from "../../theme/tones";
+import { statusTone, tones, urgencyTone } from "../../theme/tones";
 import { toApiError } from "../../services/apiError";
 import { useMe } from "../auth/useMe";
-import { taskStatusLabel, taskStatusTone } from "./taskLabels";
+import type { TaskView } from "./api/tasks.api";
+import { taskStatusKey, taskStatusTone } from "./taskLabels";
 import { useMyTasks } from "./useTasks";
 
-const FILTERS = ["All", "Assigned", "In Progress", "Completed"] as const;
-type Filter = (typeof FILTERS)[number];
+/**
+ * The three views that partition a volunteer's work, matching what the API's
+ * `?view=` returns (SRS §3.1.8): `assigned` is accepted-or-awaiting and not yet
+ * started, `in_progress` and `completed` are accepted tasks at that stage.
+ */
+const VIEWS: TaskView[] = ["assigned", "in_progress", "completed"];
 
 export function MyTasksScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { data: me } = useMe();
-  const [filter, setFilter] = useState<Filter>("All");
+  const [view, setView] = useState<TaskView>("assigned");
 
-  const { data, isLoading, isError, error, refetch, isRefetching } = useMyTasks();
+  // The view is passed to the server. This screen used to call useMyTasks() with no
+  // view — which the API answers with `assigned` only — and then filtered that list
+  // client-side for "In Progress"/"Completed", so those chips were permanently empty.
+  const { data, isLoading, isError, error, refetch, isRefetching } = useMyTasks(view);
   const tasks = data?.items ?? [];
-
-  const visibleTasks = useMemo(() => {
-    if (filter === "All") return tasks;
-    if (filter === "Assigned") {
-      return tasks.filter((task) =>
-        task.assignments.some((a) => a.status === "assigned" || a.status === "accepted"),
-      );
-    }
-    if (filter === "In Progress") return tasks.filter((task) => task.status === "in_progress");
-    return tasks.filter((task) => task.status === "completed");
-  }, [tasks, filter]);
 
   if (!me?.organisation) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
         <EmptyState
           icon="people-outline"
-          title="No organization yet"
-          message="Cleanup tasks are assigned by the organization you volunteer with."
+          title={t("tasks.empty.noOrgTitle")}
+          message={t("tasks.empty.noOrgBody")}
           action={
             <PrimaryButton
-              label="Find an Organization"
+              label={t("tasks.empty.findOrg")}
               onPress={() =>
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (navigation as any).navigate("OrganisationDirectory")
@@ -78,61 +78,72 @@ export function MyTasksScreen() {
     );
   }
 
+  const now = Date.now();
+
   return (
     <FlatList
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
-      data={visibleTasks}
+      data={tasks}
       keyExtractor={(task) => task.id}
       refreshing={isRefetching}
       onRefresh={refetch}
       ListHeaderComponent={
         <>
-          <ScreenHeader title="My Tasks" subtitle={`Assignments from ${me.organisation.name}`} />
-          <View style={styles.filterRow}>
-            {FILTERS.map((option) => (
-              <Chip key={option} label={option} selected={option === filter} onPress={() => setFilter(option)} />
-            ))}
-          </View>
+          <ScreenHeader title={t("tasks.title")} subtitle={t("tasks.subtitle", { org: me.organisation.name })} />
+          <Segmented
+            options={VIEWS.map((value) => ({ value, label: t(`tasks.views.${value}`) }))}
+            value={view}
+            onChange={setView}
+            accessibilityLabel={t("tasks.title")}
+            style={styles.segmented}
+          />
         </>
       }
       ListEmptyComponent={
         <EmptyState
           icon="checkbox-outline"
-          title="Nothing in this view"
-          message={
-            filter === "All"
-              ? "When your organization assigns you a cleanup, it lands here."
-              : "No tasks match this filter right now."
-          }
+          title={t(`tasks.empty.${view}Title`)}
+          message={t(`tasks.empty.${view}Body`)}
         />
       }
-      renderItem={({ item }) => (
-        <Pressable
-          onPress={() =>
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (navigation as any).navigate("TaskDetail", { taskId: item.id })
-          }
-        >
-          <Card style={styles.taskCard}>
-            <View style={styles.taskHeader}>
-              <Text style={styles.taskTitle} numberOfLines={1}>
+      renderItem={({ item }) => {
+        const overdue = item.status !== "completed" && new Date(item.dueDate).getTime() < now;
+        const due = new Date(item.dueDate).toLocaleDateString();
+        return (
+          <Pressable
+            onPress={() =>
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (navigation as any).navigate("TaskDetail", { taskId: item.id })
+            }
+            accessibilityRole="button"
+          >
+            <Card style={styles.taskCard}>
+              <View style={styles.badgeRow}>
+                <Badge
+                  label={t(taskStatusKey(item, me.id))}
+                  tone={statusTone(taskStatusTone(item, me.id))}
+                />
+                <Badge label={t(`tasks.priority.${item.priority}`)} tone={urgencyTone(item.priority)} />
+              </View>
+              <Text style={styles.taskTitle} numberOfLines={2}>
                 {item.title}
               </Text>
-              <Badge label={taskStatusLabel(item)} tone={statusTone(taskStatusTone(item))} />
-            </View>
-            {item.description ? (
-              <Text style={styles.taskDescription} numberOfLines={2}>
-                {item.description}
-              </Text>
-            ) : null}
-            <View style={styles.taskFooter}>
-              <Ionicons name="time-outline" size={14} color={colors.textMuted} />
-              <Text style={styles.taskDue}>Due {new Date(item.dueDate).toLocaleDateString()}</Text>
-            </View>
-          </Card>
-        </Pressable>
-      )}
+              {item.description ? (
+                <Text style={styles.taskDescription} numberOfLines={2}>
+                  {item.description}
+                </Text>
+              ) : null}
+              <MetaRow
+                icon="time-outline"
+                text={overdue ? t("tasks.card.overdue", { date: due }) : t("tasks.card.due", { date: due })}
+                tone={overdue ? tones.rejected : undefined}
+                trailing={<Ionicons name="chevron-forward" size={16} color={colors.textMuted} />}
+              />
+            </Card>
+          </Pressable>
+        );
+      }}
       ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
     />
   );
@@ -158,38 +169,24 @@ const styles = StyleSheet.create({
   errorWrap: {
     justifyContent: "flex-start",
   },
-  filterRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
+  segmented: {
     marginBottom: spacing.lg,
   },
   taskCard: {
     gap: spacing.sm,
   },
-  taskHeader: {
+  badgeRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    flexWrap: "wrap",
     gap: spacing.sm,
   },
   taskTitle: {
-    flex: 1,
     ...typography.h3,
-    fontSize: 15,
+    fontSize: 16,
   },
   taskDescription: {
     ...typography.meta,
     color: colors.textSecondary,
     lineHeight: 19,
-  },
-  taskFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  taskDue: {
-    ...typography.meta,
-    fontSize: 12,
   },
 });

@@ -10,7 +10,16 @@
     "loading": "Loading...",
     "retry": "Retry",
     "next": "Next",
-    "openSettings": "Open settings"
+    "openSettings": "Open settings",
+    "timeAgo": {
+      "justNow": "Just now",
+      "minutes_one": "{{count}}m ago",
+      "minutes_other": "{{count}}m ago",
+      "hours_one": "{{count}}h ago",
+      "hours_other": "{{count}}h ago",
+      "days_one": "{{count}}d ago",
+      "days_other": "{{count}}d ago"
+    }
   },
   "auth": {
     "login": "Log In"
@@ -75,6 +84,168 @@
       "addPhoto": "Add a photo to continue",
       "captureFailed": "Couldn't take the photo. Try again, or choose one from your gallery.",
       "galleryFailed": "Couldn't use that photo. Try another one."
+    }
+  },
+  "incident": {
+    "severity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "category": {
+      "illegal_dumping": "Illegal dumping",
+      "water_pollution": "Water pollution",
+      "air_pollution": "Air pollution",
+      "deforestation": "Deforestation",
+      "wildlife_hazard": "Wildlife hazard",
+      "other": "Other"
+    },
+    "status": {
+      "awaitingClaim": "Awaiting claim",
+      "claimed": "Claimed",
+      "rejected": "Rejected",
+      "duplicate": "Duplicate"
+    }
+  },
+  "reports": {
+    "title": "Your reports",
+    "subtitle": "Spot it. Report it. Track the change.",
+    "cta": "Report an issue",
+    "recent": "Recent reports",
+    "emptyTitle": "No reports yet",
+    "emptyMessage": "Spot something? Report it and it shows up here, with its review status."
+  },
+  "tasks": {
+    "title": "My Tasks",
+    "subtitle": "Assignments from {{org}}",
+    "views": {
+      "assigned": "Assigned",
+      "in_progress": "In progress",
+      "completed": "Completed"
+    },
+    "priority": {
+      "low": "Low priority",
+      "medium": "Medium priority",
+      "high": "High priority"
+    },
+    "status": {
+      "awaitingResponse": "Awaiting response",
+      "accepted": "Accepted",
+      "declined": "Declined",
+      "pending": "Pending",
+      "inProgress": "In progress",
+      "completed": "Completed"
+    },
+    "card": {
+      "due": "Due {{date}}",
+      "overdue": "Overdue · {{date}}"
+    },
+    "empty": {
+      "noOrgTitle": "No organization yet",
+      "noOrgBody": "Cleanup tasks are assigned by the organization you volunteer with.",
+      "findOrg": "Find an Organization",
+      "assignedTitle": "Nothing to start",
+      "assignedBody": "New assignments from your organization land here. Tasks you've started are under In progress.",
+      "in_progressTitle": "Nothing in progress",
+      "in_progressBody": "Accept and start a task and it moves here while you work on it.",
+      "completedTitle": "No completed tasks yet",
+      "completedBody": "Tasks you finish, with their evidence, are kept here."
+    }
+  },
+  "events": {
+    "title": "My Events",
+    "subtitle": "Clean up together, close to home",
+    "views": {
+      "upcoming": "Upcoming",
+      "past": "Past"
+    },
+    "hostedBy": "Hosted by {{org}}",
+    "going_one": "{{count}} going",
+    "going_other": "{{count}} going",
+    "goingOf": "{{count}} of {{max}} going",
+    "goingBadge": "Going",
+    "rsvp": "RSVP",
+    "cancelRsvp": "Cancel RSVP",
+    "full": "Event is full",
+    "status": {
+      "scheduled": "Scheduled",
+      "ongoing": "Happening now",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "empty": {
+      "noOrgTitle": "No organization yet",
+      "noOrgBody": "Cleanup events are run by organizations. Join one to see what's coming up.",
+      "findOrg": "Find an Organization",
+      "upcomingTitle": "Nothing scheduled",
+      "upcomingBody": "{{org}} hasn't scheduled an event yet. You'll be notified when one is.",
+      "pastTitle": "No past events",
+      "pastBody": "Events you could join, once they've happened, are kept here."
+    },
+    "detail": {
+      "description": "Description",
+      "linkedReports": "Linked reports",
+      "attendees": "Who's going",
+      "noAttendees": "No one has RSVPed yet — be the first."
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "fallbackName": "EcoTrack user",
+    "role": {
+      "volunteer": "Volunteer · {{org}}",
+      "citizen": "Citizen"
+    },
+    "unlocks": {
+      "title": "Volunteer with an organization",
+      "body": "Joining one adds Tasks and Events to your app — cleanups assigned to you, and community events to RSVP to.",
+      "cta": "Find an Organization"
+    },
+    "pendingJoin": {
+      "title": "Join request pending",
+      "body": "An organization admin still has to approve it. You'll be notified, and your volunteer tabs appear here as soon as it's approved."
+    },
+    "stats": {
+      "reportsFiled": "Reports filed",
+      "tasksCompleted": "Tasks completed"
+    },
+    "radius": {
+      "title": "Notification radius"
+    },
+    "urgency": {
+      "title": "Minimum notification urgency",
+      "all": "All",
+      "mediumPlus": "Medium+",
+      "highPlus": "High+",
+      "criticalOnly": "Critical only"
+    },
+    "locationFailed": "Couldn't determine your location. Please try again.",
+    "logOut": "Log Out",
+    "deleteAccount": "Delete Account"
+  },
+  "map": {
+    "wordmark": "EcoTrack",
+    "greeting": {
+      "morning": "Good morning, {{name}}",
+      "afternoon": "Good afternoon, {{name}}",
+      "evening": "Good evening, {{name}}"
+    },
+    "nearby_one": "{{count}} report near you",
+    "nearby_other": "{{count}} reports near you",
+    "searching": "Finding reports near you…",
+    "closest": "Closest to you",
+    "closestEmpty": "Nothing reported nearby — that's good news.",
+    "distanceAway": "{{distance}} away",
+    "viewDetails": "View details",
+    "filters": {
+      "title": "Filter incidents",
+      "status": "Status",
+      "urgency": "Urgency",
+      "apply": "Apply",
+      "all": "All",
+      "awaitingClaim": "Awaiting claim",
+      "claimed": "Claimed"
     }
   }
 }

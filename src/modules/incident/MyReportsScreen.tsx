@@ -1,36 +1,63 @@
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 
 import { Badge } from "../../components/Badge";
 import { Card } from "../../components/Card";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorBanner } from "../../components/ErrorBanner";
+import { MetaRow } from "../../components/MetaRow";
+import { PrimaryButton } from "../../components/PrimaryButton";
+import { ScreenHeader } from "../../components/ScreenHeader";
+import { SectionLabel } from "../../components/SectionLabel";
+import { ThumbPlaceholder } from "../../components/ThumbPlaceholder";
 import { colors, spacing, typography } from "../../theme/colors";
 import { statusTone, tones, urgencyTone, type Tone } from "../../theme/tones";
 import { toApiError } from "../../services/apiError";
 import type { MyIncident } from "../../types/api";
-import { CATEGORY_LABEL, SEVERITY_LABEL } from "./incidentLabels";
+import { categoryKey, CATEGORY_ICON, severityKey } from "./incidentLabels";
+import { QueueBanner } from "./QueueBanner";
 import { useMyReports } from "./useMyReports";
 
-function statusFor(report: MyIncident): { label: string; tone: Tone } {
+function statusFor(report: MyIncident): { key: string; tone: Tone } {
   if (report.verificationStatus === "rejected") {
-    return { label: "Rejected", tone: statusTone("rejected") };
+    return { key: "incident.status.rejected", tone: statusTone("rejected") };
   }
   if (report.verificationStatus === "duplicate") {
-    return { label: "Duplicate", tone: statusTone("duplicate") };
+    return { key: "incident.status.duplicate", tone: statusTone("duplicate") };
   }
   if (report.organisationId) {
-    return { label: "Claimed", tone: statusTone("verified") };
+    return { key: "incident.status.claimed", tone: statusTone("verified") };
   }
-  return { label: "Awaiting claim", tone: tones.pending };
+  return { key: "incident.status.awaitingClaim", tone: tones.pending };
 }
 
+/**
+ * The Report tab. It used to be a placeholder that intercepted its own tab press to
+ * open the same wizard the map's floating button opens — two controls, one action.
+ * SRS §3.9.1 requires both a Report tab and a Report FAB on the map, so neither can
+ * go; instead the tab is where you *track* reports and the FAB is where you make
+ * one from the map.
+ */
 export function MyReportsScreen() {
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { data, isLoading, isError, error, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
     useMyReports();
 
   const reports = data?.pages.flatMap((page) => page.items) ?? [];
+  // The server's own count, not reports.length — the list is paginated.
+  const total = data?.pages[0]?.total ?? 0;
+
+  function openWizard() {
+    navigation.getParent()?.navigate("ReportModal" as never);
+  }
+
+  const cta = (
+    <PrimaryButton label={t("reports.cta")} icon="add-circle-outline" size="lg" onPress={openWizard} />
+  );
 
   if (isLoading) {
     return (
@@ -42,7 +69,7 @@ export function MyReportsScreen() {
 
   if (isError) {
     return (
-      <View style={[styles.container, styles.errorWrap, { paddingTop: spacing.xl }]}>
+      <View style={[styles.container, styles.errorWrap, { paddingTop: insets.top + spacing.xl }]}>
         <ErrorBanner message={toApiError(error).message} />
       </View>
     );
@@ -51,7 +78,7 @@ export function MyReportsScreen() {
   return (
     <FlatList
       style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: spacing.md }]}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
       data={reports}
       keyExtractor={(item) => item.id}
       refreshing={isRefetching}
@@ -61,16 +88,21 @@ export function MyReportsScreen() {
         if (hasNextPage && !isFetchingNextPage) fetchNextPage();
       }}
       ListHeaderComponent={
-        reports.length > 0 ? (
-          <Text style={styles.listIntro}>Everything you've reported, and where it got to.</Text>
-        ) : null
+        <View style={styles.header}>
+          <ScreenHeader title={t("reports.title")} subtitle={t("reports.subtitle")} style={styles.screenHeader} />
+          {cta}
+          <QueueBanner />
+          {reports.length > 0 ? (
+            <SectionLabel
+              label={t("reports.recent")}
+              trailing={<Text style={styles.count}>{total}</Text>}
+              style={styles.sectionLabel}
+            />
+          ) : null}
+        </View>
       }
       ListEmptyComponent={
-        <EmptyState
-          icon="document-text-outline"
-          title="No reports yet"
-          message="Anything you report from the map shows up here, with its review status."
-        />
+        <EmptyState icon="document-text-outline" title={t("reports.emptyTitle")} message={t("reports.emptyMessage")} />
       }
       ListFooterComponent={
         isFetchingNextPage ? <ActivityIndicator style={styles.footerSpinner} color={colors.primary} /> : null
@@ -83,21 +115,34 @@ export function MyReportsScreen() {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               (navigation as any).navigate("IncidentDetail", { incidentId: item.id })
             }
+            accessibilityRole="button"
           >
             <Card style={styles.card}>
-              <Text style={styles.title} numberOfLines={1}>
-                {item.title}
-              </Text>
-              <View style={styles.badgeRow}>
-                <Badge label={SEVERITY_LABEL[item.severity]} tone={urgencyTone(item.severity)} />
-                <Badge label={CATEGORY_LABEL[item.category]} tone={tones.neutral} dot={false} />
-                <Badge label={status.label} tone={status.tone} />
+              <ThumbPlaceholder
+                seed={item.id}
+                uri={item.images[0]?.url}
+                width={64}
+                height={64}
+                icon={CATEGORY_ICON[item.category]}
+              />
+              <View style={styles.body}>
+                <Text style={styles.title} numberOfLines={1}>
+                  {item.title}
+                </Text>
+                <MetaRow
+                  icon="calendar-outline"
+                  text={`${t(categoryKey(item.category))} · ${new Date(item.createdAt).toLocaleDateString()}`}
+                />
+                <View style={styles.badgeRow}>
+                  <Badge label={t(status.key)} tone={status.tone} />
+                  <Badge label={t(severityKey(item.severity))} tone={urgencyTone(item.severity)} />
+                </View>
               </View>
-              <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
             </Card>
           </Pressable>
         );
       }}
+      ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
     />
   );
 }
@@ -110,7 +155,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
-    gap: spacing.md,
     flexGrow: 1,
   },
   centered: {
@@ -122,12 +166,28 @@ const styles = StyleSheet.create({
   errorWrap: {
     paddingHorizontal: spacing.lg,
   },
-  listIntro: {
-    ...typography.bodySm,
-    marginBottom: spacing.xs,
+  header: {
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  screenHeader: {
+    marginBottom: 0,
+  },
+  sectionLabel: {
+    marginTop: spacing.sm,
+  },
+  count: {
+    ...typography.label,
+    color: colors.textSecondary,
   },
   card: {
-    gap: spacing.sm,
+    flexDirection: "row",
+    gap: spacing.md,
+    alignItems: "center",
+  },
+  body: {
+    flex: 1,
+    gap: 6,
   },
   title: {
     ...typography.h3,
@@ -137,10 +197,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm,
-  },
-  date: {
-    ...typography.meta,
-    fontSize: 12,
   },
   footerSpinner: {
     marginVertical: spacing.md,

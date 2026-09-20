@@ -3,6 +3,7 @@ import * as Notifications from "expo-notifications";
 import { create } from "zustand";
 
 import { uploadIncidentPhoto } from "../../services/mediaUpload";
+import { queryClient } from "../../services/queryClient";
 import { incidentsApi } from "./api/incidents.api";
 import {
   IncidentDraft,
@@ -126,6 +127,11 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
           if (failure.scope === "blocking") blocked = true;
           continue;
         }
+
+        // The user's report list, its count and the map's nearby pins are all stale
+        // now. Nothing invalidated them before, so the new report only appeared when
+        // a screen next refetched for some other reason.
+        void queryClient.invalidateQueries({ queryKey: ["incidents"] });
 
         // Outside the submit try/catch: a failed notification must not mark an
         // already-delivered report as failed, or stop the queue.

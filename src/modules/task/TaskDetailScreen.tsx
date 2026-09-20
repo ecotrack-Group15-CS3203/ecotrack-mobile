@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -22,7 +23,7 @@ import { colors, radii, spacing, typography } from "../../theme/colors";
 import { statusTone, urgencyTone } from "../../theme/tones";
 import { toApiError } from "../../services/apiError";
 import { useMe } from "../auth/useMe";
-import { taskStatusLabel, taskStatusTone } from "./taskLabels";
+import { taskStatusKey, taskStatusTone } from "./taskLabels";
 import {
   useAddTaskNote,
   useCompleteTask,
@@ -34,6 +35,7 @@ import {
 type RouteParams = { taskId: string };
 
 export function TaskDetailScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const { params } = useRoute();
   const { taskId } = params as RouteParams;
@@ -85,7 +87,7 @@ export function TaskDetailScreen() {
     >
       <Text style={styles.title}>{task.title}</Text>
       <View style={styles.badgeRow}>
-        <Badge label={taskStatusLabel(task)} tone={statusTone(taskStatusTone(task))} />
+        <Badge label={t(taskStatusKey(task, me?.id))} tone={statusTone(taskStatusTone(task, me?.id))} />
         <Badge label={`${task.priority} priority`} tone={urgencyTone(task.priority)} />
       </View>
       <View style={styles.dueRow}>

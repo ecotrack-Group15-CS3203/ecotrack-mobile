@@ -1,33 +1,29 @@
 import { useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRoute } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 
-import { Ionicons } from "@expo/vector-icons";
-
+import { Avatar, AvatarStack } from "../../components/Avatar";
 import { Badge } from "../../components/Badge";
 import { Card } from "../../components/Card";
+import { DateTile } from "../../components/DateTile";
 import { ErrorBanner } from "../../components/ErrorBanner";
+import { MetaList, MetaRow } from "../../components/MetaRow";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { SectionLabel } from "../../components/SectionLabel";
-import { colors, radii, spacing, typography } from "../../theme/colors";
+import { ThumbPlaceholder } from "../../components/ThumbPlaceholder";
+import { colors, spacing, typography } from "../../theme/colors";
 import { statusTone, tones, urgencyTone } from "../../theme/tones";
 import { toApiError } from "../../services/apiError";
 import { useMe } from "../auth/useMe";
-import { CATEGORY_LABEL, SEVERITY_LABEL } from "../incident/incidentLabels";
+import { categoryKey, severityKey } from "../incident/incidentLabels";
+import { canRsvp as isOpenForRsvp, formatLongDate, formatTimeRange } from "./eventFormat";
 import { useCancelRsvp, useEventDetail, useRsvp } from "./useEvents";
 
 type RouteParams = { eventId: string };
 
-function formatRange(scheduledAt: string, endsAt: string): string {
-  const start = new Date(scheduledAt);
-  const end = new Date(endsAt);
-  const dateLabel = start.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
-  const startTime = start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-  const endTime = end.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-  return `${dateLabel} · ${startTime} – ${endTime}`;
-}
-
 export function EventDetailScreen() {
+  const { t } = useTranslation();
   const { params } = useRoute();
   const { eventId } = params as RouteParams;
 
@@ -55,9 +51,13 @@ export function EventDetailScreen() {
     );
   }
 
+  // Detail rows have no `rsvpedByMe` (only list rows do), so it is derived here.
   const isGoing = event.rsvps.some((r) => r.userId === me?.id);
   const isFull = event.maxAttendees !== null && event.rsvpCount >= event.maxAttendees && !isGoing;
-  const canRsvp = event.status === "scheduled" || event.status === "ongoing";
+  const open = isOpenForRsvp(event.status);
+  // Names only. The API also returns each attendee's email address; showing peers'
+  // contact details would breach purpose limitation (SRS §3.11.2, §3.1.19).
+  const attendeeNames = event.rsvps.map((rsvp) => rsvp.user?.fullName ?? null);
 
   function handleRsvpToggle() {
     setActionError(null);
@@ -66,75 +66,94 @@ export function EventDetailScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: spacing.md }]}
-    >
-      <Text style={styles.title}>{event.title}</Text>
-      <View style={styles.badgeRow}>
-        {isGoing ? <Badge label="Going" tone={tones.resolved} /> : null}
-        <Badge label={event.status.replace(/_/g, " ")} tone={statusTone(event.status)} />
-      </View>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ThumbPlaceholder seed={event.id} height={150} radius={0} icon="leaf-outline">
+        <View style={styles.dateTile}>
+          <DateTile date={event.scheduledAt} />
+        </View>
+        <View style={styles.badges}>
+          {isGoing ? <Badge label={t("events.goingBadge")} tone={tones.resolved} /> : null}
+          {event.status !== "scheduled" ? (
+            <Badge label={t(`events.status.${event.status}`)} tone={statusTone(event.status)} />
+          ) : null}
+        </View>
+      </ThumbPlaceholder>
 
-      <View style={styles.dateRow}>
-        <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
-        <Text style={styles.dateRange}>{formatRange(event.scheduledAt, event.endsAt)}</Text>
-      </View>
+      <View style={styles.padded}>
+        <View style={styles.headline}>
+          <Text style={styles.title}>{event.title}</Text>
+          {me?.organisation ? (
+            <MetaRow icon="business-outline" text={t("events.hostedBy", { org: me.organisation.name })} />
+          ) : null}
+        </View>
 
-      {event.description ? (
-        <Card style={styles.section}>
-          <SectionLabel label="Description" />
-          <Text style={styles.body}>{event.description}</Text>
+        <Card>
+          <MetaList>
+            <MetaRow icon="calendar-outline" text={formatLongDate(event.scheduledAt)} />
+            <MetaRow icon="time-outline" text={formatTimeRange(event.scheduledAt, event.endsAt)} />
+            <MetaRow
+              icon="people-outline"
+              text={
+                event.maxAttendees !== null
+                  ? t("events.goingOf", { count: event.rsvpCount, max: event.maxAttendees })
+                  : t("events.going", { count: event.rsvpCount })
+              }
+            />
+          </MetaList>
         </Card>
-      ) : null}
 
-      {event.incidents.length > 0 ? (
-        <Card style={styles.section}>
-          <SectionLabel label="Linked reports" />
-          {event.incidents.map((incident) => (
-            <View key={incident.id} style={styles.incidentRow}>
-              <Text style={styles.incidentTitle} numberOfLines={1}>
-                {incident.title}
-              </Text>
-              <Badge label={SEVERITY_LABEL[incident.severity]} tone={urgencyTone(incident.severity)} />
-              <Badge label={CATEGORY_LABEL[incident.category]} tone={tones.neutral} dot={false} />
-            </View>
-          ))}
-        </Card>
-      ) : null}
+        {event.description ? (
+          <Card style={styles.section}>
+            <SectionLabel label={t("events.detail.description")} />
+            <Text style={styles.body}>{event.description}</Text>
+          </Card>
+        ) : null}
 
-      <Card style={styles.section}>
-        <SectionLabel
-          label={`RSVPs (${event.rsvpCount}${event.maxAttendees !== null ? ` / ${event.maxAttendees}` : ""})`}
-        />
-        {event.rsvps.length === 0 ? (
-          <Text style={styles.emptyText}>No one has RSVPed yet — be the first.</Text>
-        ) : (
-          event.rsvps.map((rsvp) => (
-            <View key={rsvp.userId} style={styles.rsvpRow}>
-              <View style={styles.rsvpAvatar}>
-                <Text style={styles.rsvpInitial}>
-                  {(rsvp.user?.fullName ?? "A").charAt(0).toUpperCase()}
+        {event.incidents.length > 0 ? (
+          <Card style={styles.section}>
+            <SectionLabel label={t("events.detail.linkedReports")} />
+            {event.incidents.map((incident) => (
+              <View key={incident.id} style={styles.incidentRow}>
+                <Text style={styles.incidentTitle} numberOfLines={1}>
+                  {incident.title}
                 </Text>
+                <Badge label={t(severityKey(incident.severity))} tone={urgencyTone(incident.severity)} />
+                <Badge label={t(categoryKey(incident.category))} tone={tones.neutral} dot={false} />
               </View>
-              <Text style={styles.rsvpName}>{rsvp.user?.fullName ?? "A volunteer"}</Text>
-            </View>
-          ))
-        )}
-      </Card>
+            ))}
+          </Card>
+        ) : null}
 
-      {actionError ? <ErrorBanner message={actionError} /> : null}
+        <Card style={styles.section}>
+          <SectionLabel
+            label={t("events.detail.attendees")}
+            trailing={attendeeNames.length > 0 ? <AvatarStack names={attendeeNames} /> : null}
+          />
+          {event.rsvps.length === 0 ? (
+            <Text style={styles.emptyText}>{t("events.detail.noAttendees")}</Text>
+          ) : (
+            event.rsvps.map((rsvp) => (
+              <View key={rsvp.userId} style={styles.rsvpRow}>
+                <Avatar name={rsvp.user?.fullName} size={28} />
+                <Text style={styles.rsvpName}>{rsvp.user?.fullName ?? "—"}</Text>
+              </View>
+            ))
+          )}
+        </Card>
 
-      {canRsvp ? (
-        <PrimaryButton
-          label={isGoing ? "Cancel RSVP" : isFull ? "Event is full" : "RSVP"}
-          variant={isGoing ? "secondary" : "primary"}
-          icon={isGoing ? undefined : "checkmark-circle-outline"}
-          disabled={isFull && !isGoing}
-          loading={rsvpMutation.isPending || cancelMutation.isPending}
-          onPress={handleRsvpToggle}
-        />
-      ) : null}
+        {actionError ? <ErrorBanner message={actionError} /> : null}
+
+        {open ? (
+          <PrimaryButton
+            label={isGoing ? t("events.cancelRsvp") : isFull ? t("events.full") : t("events.rsvp")}
+            variant={isGoing ? "secondary" : "primary"}
+            icon={isGoing ? undefined : "checkmark-circle-outline"}
+            disabled={isFull && !isGoing}
+            loading={rsvpMutation.isPending || cancelMutation.isPending}
+            onPress={handleRsvpToggle}
+          />
+        ) : null}
+      </View>
     </ScrollView>
   );
 }
@@ -145,8 +164,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
+  },
+  padded: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
     gap: spacing.md,
   },
   centered: {
@@ -158,21 +180,22 @@ const styles = StyleSheet.create({
   errorWrap: {
     paddingHorizontal: spacing.lg,
   },
+  dateTile: {
+    position: "absolute",
+    left: spacing.lg,
+    bottom: spacing.md,
+  },
+  badges: {
+    position: "absolute",
+    right: spacing.lg,
+    top: spacing.md,
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  headline: {
+    gap: spacing.xs,
+  },
   title: typography.h2,
-  badgeRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  dateRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  dateRange: {
-    ...typography.bodySm,
-    flex: 1,
-  },
   section: {
     gap: spacing.sm,
   },
@@ -196,19 +219,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-  },
-  rsvpAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: radii.pill,
-    backgroundColor: colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rsvpInitial: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.primary,
   },
   rsvpName: {
     ...typography.bodySm,

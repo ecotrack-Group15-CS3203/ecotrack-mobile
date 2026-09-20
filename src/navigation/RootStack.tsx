@@ -4,7 +4,6 @@ import { colors, typography } from "../theme/colors";
 
 import { EventDetailScreen } from "../modules/event/EventDetailScreen";
 import { IncidentDetailScreen } from "../modules/incident/IncidentDetailScreen";
-import { MyReportsScreen } from "../modules/incident/MyReportsScreen";
 import { InviteAcceptScreen } from "../modules/invite/InviteAcceptScreen";
 import { JoinRequestScreen } from "../modules/organisation/JoinRequestScreen";
 import { OrganisationDirectoryScreen } from "../modules/organisation/OrganisationDirectoryScreen";
@@ -53,11 +52,6 @@ export function RootStack() {
         name="IncidentDetail"
         component={IncidentDetailScreen}
         options={{ title: "Report" }}
-      />
-      <Stack.Screen
-        name="MyReports"
-        component={MyReportsScreen}
-        options={{ title: "My Reports" }}
       />
       <Stack.Screen name="TaskDetail" component={TaskDetailScreen} options={{ title: "Task" }} />
       <Stack.Screen

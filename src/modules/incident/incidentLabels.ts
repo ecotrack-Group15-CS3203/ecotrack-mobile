@@ -1,17 +1,21 @@
+import type { Ionicons } from "@expo/vector-icons";
+
 import type { IncidentCategory, IncidentSeverity } from "../../types/api";
 
-export const CATEGORY_LABEL: Record<IncidentCategory, string> = {
-  illegal_dumping: "Illegal dumping",
-  water_pollution: "Water pollution",
-  air_pollution: "Air pollution",
-  deforestation: "Deforestation",
-  wildlife_hazard: "Wildlife hazard",
-  other: "Other",
-};
+/**
+ * i18n keys, not English strings: module-scope `t()` would capture the language at
+ * import time and never update (SRS §3.5.8), so the caller resolves these at
+ * render — `t(severityKey(incident.severity))`.
+ */
+export const severityKey = (severity: IncidentSeverity) => `incident.severity.${severity}` as const;
+export const categoryKey = (category: IncidentCategory) => `incident.category.${category}` as const;
 
-export const SEVERITY_LABEL: Record<IncidentSeverity, string> = {
-  low: "LOW",
-  medium: "MEDIUM",
-  high: "HIGH",
-  critical: "CRITICAL",
+/** A glyph per category — the watermark on a photo-less thumbnail. */
+export const CATEGORY_ICON: Record<IncidentCategory, keyof typeof Ionicons.glyphMap> = {
+  illegal_dumping: "trash-outline",
+  water_pollution: "water-outline",
+  air_pollution: "cloud-outline",
+  deforestation: "leaf-outline",
+  wildlife_hazard: "paw-outline",
+  other: "alert-circle-outline",
 };
