@@ -6,6 +6,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useAuthStore } from "../modules/auth/authStore";
 import { useNetworkQueueSync } from "../modules/incident/useNetworkQueueSync";
 import { registerForPushNotifications } from "../modules/notifications/pushRegistration";
+import { useMembershipSync } from "../modules/notifications/useMembershipSync";
 import { useNotificationTapListener } from "../modules/notifications/useNotificationTapListener";
 import { navigate, navigationRef } from "./navigationRef";
 import { pendingLink } from "./pendingLink";
@@ -25,6 +26,7 @@ export function NavigationShell() {
   useNetworkQueueSync();
   useDeepLinkListener();
   useNotificationTapListener();
+  useMembershipSync();
 
   // Only ever prompts for the OS permission, never registers silently — see
   // pushRegistration.ts. Runs once per sign-in rather than on every app open

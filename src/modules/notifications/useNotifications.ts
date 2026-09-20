@@ -3,7 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { notificationsApi } from "./api/notifications.api";
 
 const PAGE_SIZE = 30;
-const inboxQueryKey = ["notifications", "inbox"] as const;
+/** Exported so notificationCacheSync can invalidate the inbox from outside
+ * the component tree, when a push arrives. */
+export const inboxQueryKey = ["notifications", "inbox"] as const;
 
 export function useNotificationInbox() {
   return useQuery({

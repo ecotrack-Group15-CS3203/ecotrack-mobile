@@ -1,7 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuthStore } from "./authStore";
+import { isWithinWatchWindow, useMembershipWatch } from "./membershipWatch";
 import { authApi, UpdateProfilePayload } from "./api/auth.api";
+
+/** How often to re-check membership while a join request is outstanding. Short
+ * enough that an approval shows up while the user is still looking at the
+ * screen, and it only runs while a request is actually pending and the app is
+ * foregrounded (TanStack Query pauses intervals in the background). */
+const AWAITING_MEMBERSHIP_POLL_MS = 20_000;
 
 export const meQueryKey = ["me"] as const;
 
@@ -15,16 +22,31 @@ export const meQueryKey = ["me"] as const;
  */
 export function useMe() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const awaitingSince = useMembershipWatch((state) => state.awaitingSince);
+  const isAwaitingMembership = isWithinWatchWindow(awaitingSince);
 
   return useQuery({
     queryKey: meQueryKey,
     queryFn: authApi.getMe,
     enabled: isAuthenticated,
-    // Membership/role changes only happen through actions this app itself
-    // triggers (join, invite-accept, leave) — each of those already
-    // invalidates ['me'] explicitly, so a long staleTime here just avoids
-    // redundant refetches on every screen focus in between.
+    // Long, because the events that change this row are pushed to us: an
+    // approval, rejection or removal invalidates ['me'] on arrival (see
+    // notificationCacheSync), as do the mutations this app performs itself
+    // (join, invite-accept, profile edit). Between those, a five-minute cache
+    // saves a request on every screen focus.
     staleTime: 5 * 60 * 1000,
+    // ...but the push is the *fast* path, not a guarantee — it needs a granted
+    // permission, a registered token and a delivery that actually lands. These
+    // two are the backstop: whatever happened while the app was closed or
+    // offline, it re-reads membership the moment it is usable again, so a
+    // volunteer approved overnight isn't still shown the citizen view at
+    // breakfast. "always" rather than true because the staleTime above would
+    // otherwise swallow the refetch.
+    refetchOnWindowFocus: "always",
+    refetchOnReconnect: "always",
+    // And while a decision is actually outstanding, check without waiting for
+    // the user to background the app and come back.
+    refetchInterval: isAwaitingMembership ? AWAITING_MEMBERSHIP_POLL_MS : false,
   });
 }
 
