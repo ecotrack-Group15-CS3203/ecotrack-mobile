@@ -12,8 +12,9 @@ type Props = {
   disabled?: boolean;
   /** Mirrors the web's `.btn-primary` / `.btn-secondary` / `.btn-destructive`. */
   variant?: Variant;
-  /** Matches `.btn-sm` — for buttons sitting inside a card or a row. */
-  size?: "sm";
+  /** `sm` matches `.btn-sm` — for a button inside a card or row. `lg` is the page's
+   * one primary action (the mockups' full-width "Report an issue"). */
+  size?: "sm" | "lg";
   icon?: keyof typeof Ionicons.glyphMap;
   style?: ViewStyle;
   /** Shown under the button while it is disabled or loading — what it is waiting
@@ -61,6 +62,7 @@ export function PrimaryButton({
       style={({ pressed }) => [
         styles.button,
         size === "sm" && styles.buttonSm,
+        size === "lg" && styles.buttonLg,
         { backgroundColor },
         variant === "secondary" && styles.secondary,
         pressed && !isDisabled && styles.pressed,
@@ -77,8 +79,8 @@ export function PrimaryButton({
         <ActivityIndicator color={ink} />
       ) : (
         <>
-          {icon ? <Ionicons name={icon} size={size === "sm" ? 15 : 17} color={ink} /> : null}
-          <Text style={[styles.label, size === "sm" && styles.labelSm, { color: ink }]}>{label}</Text>
+          {icon ? <Ionicons name={icon} size={size === "sm" ? 15 : size === "lg" ? 19 : 17} color={ink} /> : null}
+          <Text style={[styles.label, size === "sm" && styles.labelSm, size === "lg" && styles.labelLg, { color: ink }]}>{label}</Text>
         </>
       )}
     </Pressable>
@@ -111,6 +113,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radii.sm,
   },
+  buttonLg: {
+    paddingVertical: 17,
+    borderRadius: radii.lg,
+  },
   secondary: {
     borderWidth: 1,
     borderColor: colors.borderStrong,
@@ -132,5 +138,8 @@ const styles = StyleSheet.create({
   },
   labelSm: {
     fontSize: 13,
+  },
+  labelLg: {
+    fontSize: 16,
   },
 });
