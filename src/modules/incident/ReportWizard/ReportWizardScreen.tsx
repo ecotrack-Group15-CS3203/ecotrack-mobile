@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, radii, spacing, typography } from "../../../theme/colors";
@@ -13,13 +14,14 @@ import { SuccessStep } from "./SuccessStep";
 
 type Step = 1 | 2 | 3 | "success";
 
-const STEP_TITLES: Record<1 | 2 | 3, string> = {
-  1: "Report Incident",
-  2: "Confirm Location",
-  3: "Details",
-};
+const STEP_TITLE_KEYS = {
+  1: "report.wizard.title.photo",
+  2: "report.wizard.title.location",
+  3: "report.wizard.title.details",
+} as const;
 
 export function ReportWizardScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const submitIncident = useIncidentStore((state) => state.submitIncident);
@@ -50,8 +52,8 @@ export function ReportWizardScreen() {
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>{STEP_TITLES[step]}</Text>
-          <Text style={styles.headerStep}>Step {step} of 3</Text>
+          <Text style={styles.headerTitle}>{t(STEP_TITLE_KEYS[step])}</Text>
+          <Text style={styles.headerStep}>{t("report.wizard.stepOf", { step })}</Text>
         </View>
       </View>
 
@@ -67,25 +69,45 @@ export function ReportWizardScreen() {
         ))}
       </View>
 
-      {step === 1 ? <Step1Photo photoUri={photoUri} onCapture={setPhotoUri} onNext={() => setStep(2)} /> : null}
-      {step === 2 ? (
-        <Step2Location coordinate={coordinate} onCoordinateChange={setCoordinate} onNext={() => setStep(3)} />
-      ) : null}
-      {step === 3 ? (
-        <Step3Details
-          title={title}
-          onTitleChange={setTitle}
-          description={description}
-          onDescriptionChange={setDescription}
-          urgency={urgency}
-          onUrgencyChange={setUrgency}
-          onSubmit={() => {
-            if (!photoUri || !coordinate) return;
-            submitIncident({ photoUri, coordinate, title, description, urgency });
-            setStep("success");
-          }}
-        />
-      ) : null}
+      {/* Scrolls, and lets a tap on a button land while the keyboard is up. With a
+          plain View the keyboard could cover Submit on Step 3 and nothing scrolled
+          on a small screen; and ScrollView's default swallows the first tap after
+          the keyboard opens just to dismiss it — "the button didn't press". */}
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        // Step 2 is a map the user pans and drags a pin on; an enclosing scroll view
+        // steals those vertical drags. It fits on one screen, so it doesn't need to.
+        scrollEnabled={step !== 2}
+        contentContainerStyle={{ paddingBottom: insets.bottom + spacing.lg }}
+      >
+        {step === 1 ? (
+          <Step1Photo
+            photoUri={photoUri}
+            onCapture={setPhotoUri}
+            onRetake={() => setPhotoUri(null)}
+            onNext={() => setStep(2)}
+          />
+        ) : null}
+        {step === 2 ? (
+          <Step2Location coordinate={coordinate} onCoordinateChange={setCoordinate} onNext={() => setStep(3)} />
+        ) : null}
+        {step === 3 ? (
+          <Step3Details
+            title={title}
+            onTitleChange={setTitle}
+            description={description}
+            onDescriptionChange={setDescription}
+            urgency={urgency}
+            onUrgencyChange={setUrgency}
+            onSubmit={() => {
+              if (!photoUri || !coordinate) return;
+              submitIncident({ photoUri, coordinate, title, description, urgency });
+              setStep("success");
+            }}
+          />
+        ) : null}
+      </ScrollView>
     </View>
   );
 }

@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { colors, radii, spacing } from "../theme/colors";
@@ -16,6 +16,9 @@ type Props = {
   size?: "sm";
   icon?: keyof typeof Ionicons.glyphMap;
   style?: ViewStyle;
+  /** Shown under the button while it is disabled or loading — what it is waiting
+   * for. A grey button with no reason reads as broken, not as waiting. */
+  hint?: string;
 };
 
 const VARIANT_FILL: Record<Variant, string> = {
@@ -42,6 +45,7 @@ export function PrimaryButton({
   size,
   icon,
   style,
+  hint,
 }: Props) {
   const isDisabled = disabled || loading;
   // Disabled reads as a flat grey fill rather than a dimmed brand colour —
@@ -50,7 +54,9 @@ export function PrimaryButton({
   const backgroundColor = isDisabled && variant !== "secondary" ? colors.disabled : VARIANT_FILL[variant];
   const ink = isDisabled ? colors.textDisabled : VARIANT_INK[variant];
 
-  return (
+  const showHint = !!hint && !!isDisabled;
+
+  const button = (
     <Pressable
       style={({ pressed }) => [
         styles.button,
@@ -58,7 +64,9 @@ export function PrimaryButton({
         { backgroundColor },
         variant === "secondary" && styles.secondary,
         pressed && !isDisabled && styles.pressed,
-        style,
+        // With a hint the caller's layout style (flex, alignSelf) belongs to the
+        // wrapper that owns the button and its hint together.
+        !showHint && style,
       ]}
       onPress={onPress}
       disabled={isDisabled}
@@ -74,6 +82,17 @@ export function PrimaryButton({
         </>
       )}
     </Pressable>
+  );
+
+  if (!showHint) return button;
+
+  return (
+    <View style={[styles.withHint, style]}>
+      {button}
+      <Text style={styles.hint} accessibilityLiveRegion="polite">
+        {hint}
+      </Text>
+    </View>
   );
 }
 
@@ -98,6 +117,14 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.85,
+  },
+  withHint: {
+    gap: spacing.xs,
+  },
+  hint: {
+    fontSize: 12.5,
+    textAlign: "center",
+    color: colors.textSecondary,
   },
   label: {
     fontSize: 15,

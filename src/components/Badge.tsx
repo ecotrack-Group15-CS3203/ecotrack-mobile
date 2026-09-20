@@ -19,7 +19,7 @@ export function Badge({ label, tone = tones.resolved, dot = true }: Props) {
   return (
     <View style={[styles.badge, { backgroundColor: tone.tint }]}>
       {dot ? <View style={[styles.dot, { backgroundColor: tone.ink }]} /> : null}
-      <Text style={[styles.label, { color: tone.ink }]}>{label}</Text>
+      <Text style={[styles.label, { color: tone.text ?? tone.ink }]}>{label}</Text>
     </View>
   );
 }
