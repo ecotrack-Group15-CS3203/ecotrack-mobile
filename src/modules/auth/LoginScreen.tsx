@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { PrimaryButton } from "../../components/PrimaryButton";
+import { BrandLockup } from "../../components/brand/BrandLockup";
 import { colors, radii, spacing, typography } from "../../theme/colors";
 import { useAsgardeoAuth } from "./useAsgardeoAuth";
 
@@ -31,13 +32,8 @@ export function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.logo}>
-          <Ionicons name="leaf" size={24} color={colors.onPrimary} />
-        </View>
-        <Text style={styles.appName}>EcoTrack</Text>
-      </View>
-      <Text style={styles.tagline}>Report hazards. Coordinate cleanups.</Text>
+      <BrandLockup markSize={96} tone="light" />
+      <Text style={styles.intro}>Report hazards. Coordinate cleanups.</Text>
 
       <View style={styles.features}>
         {FEATURES.map((feature) => (
@@ -70,7 +66,7 @@ export function LoginScreen() {
           You&apos;ll be taken to <Text style={styles.bold}>WSO2 Asgardeo</Text> to sign in or create an
           account.
         </Text>
-        <Text style={styles.footnote}>Single sign-on · no password stored in EcoTrack</Text>
+        <Text style={styles.footnote}>Single sign-on · no password stored in {t("brand.name")}</Text>
       </View>
     </View>
   );
@@ -81,30 +77,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     paddingHorizontal: spacing.lg,
-    paddingTop: 84,
+    paddingTop: 64,
     paddingBottom: spacing.xl,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  logo: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.md,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  appName: {
-    ...typography.h1,
-    fontSize: 24,
-  },
-  tagline: {
-    marginTop: spacing.sm,
+  intro: {
+    marginTop: spacing.md,
     ...typography.body,
     color: colors.textSecondary,
+    textAlign: "center",
   },
   features: {
     marginTop: spacing.xl,
