@@ -1,4 +1,5 @@
 import { ExpoConfig } from "expo/config";
+import { withGradleProperties } from "expo/config-plugins";
 
 const config: ExpoConfig = {
   name: "EcoTrack",
@@ -79,4 +80,16 @@ const config: ExpoConfig = {
   },
 };
 
-export default config;
+// Opt-in via ANDROID_ARCHS (set on the EAS "preview" profile). Every real device is
+// arm64, and the other ABIs are ~60% of the APK. Local dev builds and emulators leave
+// it unset and keep all four.
+const androidArchs = process.env.ANDROID_ARCHS;
+
+export default androidArchs
+  ? withGradleProperties(config, (c) => {
+      const prop = c.modResults.find((p) => p.type === "property" && p.key === "reactNativeArchitectures");
+      if (prop?.type === "property") prop.value = androidArchs;
+      else c.modResults.push({ type: "property", key: "reactNativeArchitectures", value: androidArchs });
+      return c;
+    })
+  : config;
