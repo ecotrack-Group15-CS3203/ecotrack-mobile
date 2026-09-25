@@ -1,8 +1,8 @@
 import { useEffect } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { BootScreen } from "../components/brand/BootScreen";
 import { useAuthStore } from "../modules/auth/authStore";
 import { useNetworkQueueSync } from "../modules/incident/useNetworkQueueSync";
 import { registerForPushNotifications } from "../modules/notifications/pushRegistration";
@@ -57,11 +57,7 @@ export function NavigationShell() {
   }, [isAuthenticated]);
 
   if (isHydrating) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <BootScreen />;
   }
 
   return (
@@ -72,7 +68,3 @@ export function NavigationShell() {
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: "center", justifyContent: "center" },
-});

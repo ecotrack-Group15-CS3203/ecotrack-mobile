@@ -1,4 +1,9 @@
 {
+  "brand": {
+    "name": "EcoTrack",
+    "tagline": "Report. Act. Keep It Clean.",
+    "loading": "EcoTrack is loading"
+  },
   "nav": {
     "map": "Map",
     "myTasks": "Tasks",
@@ -225,7 +230,7 @@
     "deleteAccount": "Delete Account"
   },
   "map": {
-    "wordmark": "EcoTrack",
+    "wordmark": "$t(brand.name)",
     "greeting": {
       "morning": "Good morning, {{name}}",
       "afternoon": "Good afternoon, {{name}}",
