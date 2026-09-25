@@ -1,33 +1,41 @@
 import type { TextStyle, ViewStyle } from "react-native";
 
 /**
- * Design tokens ported from ecotrack-web's `.eco` scope
+ * Design tokens shared with ecotrack-web's `.eco` scope
  * (`app/(org)/dashboard.css`) so the phone and the admin console read as one
- * product rather than two apps that happen to share a name. Values are copied
- * from that file's light palette verbatim — when a token changes there, change
- * it here too. Dark mode is deliberately not ported: the web has a theme
- * toggle, this app has no surface for one yet, so mirroring only the light
- * half is the honest subset rather than a half-working second theme.
+ * product rather than two apps that happen to share a name. The brand values
+ * come from the EcoTrack brand sheet (`Logo and styles/Design.png`): secondary
+ * green #2E7D32 carries fills and ink, primary green #4CAF50 is an accent only
+ * (white text on it fails contrast), dark green #0E3B2E is the splash/brand
+ * surface and earth brown #3E2F22 is the wordmark ink. When a token changes on
+ * the web, change it here too. Dark mode is deliberately not ported: the web
+ * has a theme toggle, this app has no surface for one yet.
  *
  * Key names kept from the original mobile palette (textPrimary/textMuted/…)
  * rather than renamed to the CSS custom-property spelling, so this is a
  * re-theme and not a rename touching every screen.
  */
 export const colors = {
-  /** `--primary`: teal-700. A fill dark enough to carry white text (5.4:1), and
-   * the same value doubles as ink on white — see dashboard.css's note. */
-  primary: "#0F766E",
-  primaryDark: "#115E59",
-  primaryLight: "#D8F0EC",
+  /** `--primary`: brand secondary green. A fill dark enough to carry white
+   * text (5.1:1), and the same value doubles as ink on white. */
+  primary: "#2E7D32",
+  primaryDark: "#1B5E20",
+  primaryLight: "#E8F5E9",
   onPrimary: "#FFFFFF",
 
-  background: "#EAF4F1",
+  /** Brand-only colours: the splash/boot surface, the bright accent green and
+   * the wordmark's earth brown. */
+  brandDark: "#0E3B2E",
+  brandAccent: "#4CAF50",
+  earth: "#3E2F22",
+
+  background: "#F4F8F4",
   surface: "#FFFFFF",
   /** `--surface-2` / `--surface-3`: quiet fills for inset rows and wells. */
   surfaceMuted: "#EFF5F3",
   surfaceRaised: "#F6FAF9",
 
-  textPrimary: "#16211F",
+  textPrimary: "#333333",
   textSecondary: "#53625E",
   textMuted: "#6A7975",
   textDisabled: "#A8B5B2",
@@ -47,8 +55,8 @@ export const colors = {
     verifiedTint: "#E4F0FB",
     progress: "#4F46B5",
     progressTint: "#EBEAFC",
-    resolved: "#0F766E",
-    resolvedTint: "#D8F0EC",
+    resolved: "#2E7D32",
+    resolvedTint: "#E8F5E9",
     rejected: "#A32D2D",
     rejectedTint: "#FBE9E9",
   },
@@ -96,6 +104,13 @@ export const radii = {
   pill: 999,
 } as const;
 
+/** Montserrat faces loaded in App.tsx. Brand lockups only (wordmark and
+ * tagline) — body text stays on the system font. */
+export const fonts = {
+  brand: "Montserrat_600SemiBold",
+  brandMedium: "Montserrat_500Medium",
+} as const;
+
 /**
  * The web type scale (`--fs-h1` … `--fs-meta`), plus the uppercase section
  * label the dashboard styles inline. Spread these into StyleSheet entries
@@ -114,6 +129,19 @@ export const typography = {
     letterSpacing: 0.6,
     textTransform: "uppercase",
     color: colors.textMuted,
+  },
+  /** The "ECOTRACK" wordmark. Colour is set by the lockup's tone. */
+  wordmark: {
+    fontFamily: fonts.brand,
+    fontSize: 22,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+  },
+  /** "Report. Act. Keep It Clean." under the wordmark. */
+  tagline: {
+    fontFamily: fonts.brandMedium,
+    fontSize: 12,
+    letterSpacing: 1.2,
   },
 } satisfies Record<string, TextStyle>;
 
