@@ -236,6 +236,11 @@
       "afternoon": "Good afternoon, {{name}}",
       "evening": "Good evening, {{name}}"
     },
+    "greetingPlain": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
     "nearby_one": "{{count}} report near you",
     "nearby_other": "{{count}} reports near you",
     "searching": "Finding reports near you…",
@@ -251,6 +256,7 @@
       "all": "All",
       "awaitingClaim": "Awaiting claim",
       "claimed": "Claimed"
-    }
+    },
+    "notifications": "Notifications"
   }
 }

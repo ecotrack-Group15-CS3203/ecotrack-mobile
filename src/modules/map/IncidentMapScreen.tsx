@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Camera, MapView, PointAnnotation, UserLocation } from "@rnmapbox/maps";
 
 import { Badge } from "../../components/Badge";
+import { BrandLockup } from "../../components/brand/BrandLockup";
 import { Chip } from "../../components/Chip";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { SectionLabel } from "../../components/SectionLabel";
@@ -144,7 +145,9 @@ export function IncidentMapScreen() {
 
   const selected = visibleIncidents.find((incident) => incident.id === selectedId) ?? null;
   const name = firstName(me?.fullName);
-  const greeting = name ? t(`map.greeting.${greetingPeriod(new Date().getHours())}`, { name }) : t("map.wordmark");
+  const period = greetingPeriod(new Date().getHours());
+  // The brand row already names the app, so a nameless user just gets the plain greeting.
+  const greeting = name ? t(`map.greeting.${period}`, { name }) : t(`map.greetingPlain.${period}`);
 
   function openIncident(incident: NearbyIncident) {
     // No app-wide navigation param typing exists yet (every screen in this codebase
@@ -157,40 +160,11 @@ export function IncidentMapScreen() {
 
   return (
     <View style={styles.container}>
-      {center ? (
-        <MapView
-          style={styles.map}
-          scaleBarEnabled={false}
-          onPress={() => setSelectedId(null)}
-          // Required attribution per Mapbox ToS and SRS §3.11.4 — kept explicit
-          // rather than relying on the SDK default so it can't silently regress.
-          attributionEnabled
-          logoEnabled
-        >
-          <Camera centerCoordinate={[center.longitude, center.latitude]} zoomLevel={13} animationDuration={0} />
-          {hasLocation ? <UserLocation /> : null}
-
-          {visibleIncidents.map((incident) => (
-            <PointAnnotation
-              key={incident.id}
-              id={`incident-${incident.id}`}
-              coordinate={[incident.lng, incident.lat]}
-              onSelected={() => setSelectedId(incident.id)}
-            >
-              <View style={[styles.pin, { backgroundColor: colors.urgency[incident.severity] }]} />
-            </PointAnnotation>
-          ))}
-        </MapView>
-      ) : (
-        <View style={styles.mapLoading}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      )}
-
-      <View style={[styles.top, { top: insets.top + spacing.sm }]} pointerEvents="box-none">
-        <View style={styles.headerCard}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+        <BrandLockup markSize={32} layout="inline" showTagline={false} />
+        <View style={styles.greetingRow}>
           <View style={styles.headerText}>
-            <Text style={styles.greeting} numberOfLines={1}>
+            <Text style={styles.greeting} numberOfLines={2}>
               {greeting}
             </Text>
             <Text style={styles.subline} numberOfLines={1}>
@@ -203,6 +177,7 @@ export function IncidentMapScreen() {
             <Pressable
               style={styles.iconButton}
               accessibilityRole="button"
+              accessibilityLabel={t("map.notifications")}
               onPress={() =>
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (navigation.getParent() as any)?.navigate("NotificationInbox")
@@ -211,7 +186,12 @@ export function IncidentMapScreen() {
               <Ionicons name="notifications-outline" size={20} color={colors.textPrimary} />
               {unreadCount > 0 ? <View style={styles.unreadDot} /> : null}
             </Pressable>
-            <Pressable style={styles.iconButton} accessibilityRole="button" onPress={() => setFilterVisible(true)}>
+            <Pressable
+              style={styles.iconButton}
+              accessibilityRole="button"
+              accessibilityLabel={t("map.filters.title")}
+              onPress={() => setFilterVisible(true)}
+            >
               <Ionicons name="options-outline" size={20} color={colors.textPrimary} />
             </Pressable>
           </View>
@@ -222,22 +202,55 @@ export function IncidentMapScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={styles.pillScroller}
           contentContainerStyle={styles.pills}
           keyboardShouldPersistTaps="handled"
         >
           {URGENCY_FILTERS.map((level) => (
-            <View key={level} style={styles.pill}>
-              <Chip
-                label={level === "all" ? t("map.filters.all") : t(severityKey(level))}
-                selected={urgencyFilter === level}
-                tone={level === "all" ? undefined : urgencyTone(level)}
-                onPress={() => setUrgencyFilter(level)}
-              />
-            </View>
+            <Chip
+              key={level}
+              label={level === "all" ? t("map.filters.all") : t(severityKey(level))}
+              selected={urgencyFilter === level}
+              tone={level === "all" ? undefined : urgencyTone(level)}
+              onPress={() => setUrgencyFilter(level)}
+            />
           ))}
         </ScrollView>
+      </View>
 
-        <QueueBanner />
+      <View style={styles.mapCard}>
+        {center ? (
+          <MapView
+            style={styles.map}
+            scaleBarEnabled={false}
+            onPress={() => setSelectedId(null)}
+            // Required attribution per Mapbox ToS and SRS §3.11.4 — kept explicit
+            // rather than relying on the SDK default so it can't silently regress.
+            attributionEnabled
+            logoEnabled
+          >
+            <Camera centerCoordinate={[center.longitude, center.latitude]} zoomLevel={13} animationDuration={0} />
+            {hasLocation ? <UserLocation /> : null}
+
+            {visibleIncidents.map((incident) => (
+              <PointAnnotation
+                key={incident.id}
+                id={`incident-${incident.id}`}
+                coordinate={[incident.lng, incident.lat]}
+                onSelected={() => setSelectedId(incident.id)}
+              >
+                <View style={[styles.pin, { backgroundColor: colors.urgency[incident.severity] }]} />
+              </PointAnnotation>
+            ))}
+          </MapView>
+        ) : (
+          <View style={styles.mapLoading}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        )}
+        <View style={styles.mapOverlay} pointerEvents="box-none">
+          <QueueBanner />
+        </View>
       </View>
 
       <Pressable
@@ -377,48 +390,55 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  top: {
-    position: "absolute",
-    left: spacing.lg,
-    right: spacing.lg,
-    gap: spacing.sm,
-  },
-  // The header floats over the map as a card, not bare text on tiles that could be
-  // any colour — the old wordmark carried its own white text-shadow halo to stay
-  // legible.
-  headerCard: {
-    flexDirection: "row",
-    alignItems: "center",
+  // Solid header in normal flow above the map (not floating over it), so the
+  // greeting gets the full width and can wrap to a second line.
+  header: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
     gap: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: spacing.sm + 2,
-    paddingLeft: spacing.md,
-    paddingRight: spacing.sm,
-    ...shadows.card,
+    backgroundColor: colors.background,
+  },
+  greetingRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.md,
   },
   headerText: {
     flex: 1,
   },
   greeting: {
-    ...typography.h3,
-    fontSize: 17,
+    ...typography.h1,
   },
   subline: {
-    ...typography.meta,
-    marginTop: 1,
+    ...typography.bodySm,
+    marginTop: spacing.xs,
+  },
+  // The map runs edge to edge under the header, down to the tab bar.
+  mapCard: {
+    flex: 1,
+    borderTopWidth: 1,
+    borderColor: colors.border,
+    overflow: "hidden",
+    backgroundColor: colors.surfaceMuted,
+  },
+  mapOverlay: {
+    position: "absolute",
+    top: spacing.sm,
+    left: spacing.sm,
+    right: spacing.sm,
   },
   headerActions: {
     flexDirection: "row",
     gap: spacing.sm,
   },
   iconButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: radii.pill,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.card,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -433,13 +453,14 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.surfaceMuted,
   },
+  // Bleeds to the screen edges so chips scroll off-screen rather than clipping
+  // at the header padding.
+  pillScroller: {
+    marginHorizontal: -spacing.lg,
+  },
   pills: {
     gap: spacing.sm,
-    paddingRight: spacing.lg,
-  },
-  pill: {
-    ...shadows.card,
-    borderRadius: radii.pill,
+    paddingHorizontal: spacing.lg,
   },
   pin: {
     width: 18,
