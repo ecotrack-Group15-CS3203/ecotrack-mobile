@@ -1,12 +1,13 @@
 import { ExpoConfig } from "expo/config";
 
 const config: ExpoConfig = {
-  name: "ecotrack-mobile",
+  name: "EcoTrack",
   slug: "ecotrack-mobile",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "light",
+  primaryColor: "#2E7D32",
   scheme: "ecotrack",
   ios: {
     supportsTablet: true,
@@ -15,7 +16,7 @@ const config: ExpoConfig = {
   android: {
     package: "com.ecotrack.mobile",
     adaptiveIcon: {
-      backgroundColor: "#E6F4FE",
+      backgroundColor: "#0E3B2E",
       foregroundImage: "./assets/android-icon-foreground.png",
       backgroundImage: "./assets/android-icon-background.png",
       monochromeImage: "./assets/android-icon-monochrome.png",
@@ -26,6 +27,20 @@ const config: ExpoConfig = {
     favicon: "./assets/favicon.png",
   },
   plugins: [
+    [
+      "expo-splash-screen",
+      {
+        // imageWidth must match SPLASH_MARK_SIZE in src/components/brand/BootScreen.tsx
+        // so the JS boot screen picks up with the mark in the same place. Android 12+
+        // masks the splash icon to a 192dp circle, so the mark (taller than wide)
+        // must stay well under 192dp or its top and bottom points get clipped.
+        image: "./assets/splash-icon.png",
+        imageWidth: 160,
+        resizeMode: "contain",
+        backgroundColor: "#0E3B2E",
+      },
+    ],
+    "expo-font",
     "expo-secure-store",
     "expo-web-browser",
     "@rnmapbox/maps",
