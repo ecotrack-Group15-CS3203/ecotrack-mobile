@@ -55,12 +55,11 @@ const config: ExpoConfig = {
   ],
   // getExpoPushTokenAsync (pushRegistration.ts, F7) requires this — without it
   // the call fails at runtime with a non-obvious error rather than a clear
-  // "no project ID configured" message. Run `eas init` to get a real project
-  // ID before building for push notifications; this placeholder lets the rest
-  // of the app run in Expo Go / dev builds without one.
+  // "no project ID configured" message. This is the ID of the EAS project
+  // @rashmikams-team/ecotrack-mobile; a project ID is public, not a secret.
   extra: {
     eas: {
-      projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? "00000000-0000-0000-0000-000000000000",
+      projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? "264a46d8-bf6a-40aa-aebe-4a3a65ed1f6a",
     },
   },
 };
